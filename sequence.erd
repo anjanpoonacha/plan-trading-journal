@@ -1,0 +1,69 @@
+sequenceDiagram
+    participant Admin
+    participant User
+    participant System
+    participant TradingEngine
+    participant Database
+    
+    %% Admin Flows
+    Admin->>System: Manage Instruments
+    System->>Database: CRUD Operations
+    Database-->>System: Instrument Data
+    System-->>Admin: Confirmation
+    
+    Admin->>System: Manage Subscriptions
+    System->>Database: Update User Plans
+    Database-->>System: Subscription Data
+    System-->>Admin: Status Update
+    
+    %% User Core Flows
+    User->>System: DEPOSIT/WITHDRAW
+    System->>TradingEngine: Update Capital
+    TradingEngine->>Database: Record Transaction
+    TradingEngine->>System: Update Account Value
+    System-->>User: Balance Confirmation
+    
+    User->>System: Create Entry Trade
+    System->>TradingEngine: Calculate Metrics
+    TradingEngine->>Database: Store Trade
+    TradingEngine->>System: Update Position Metrics
+    System-->>User: Trade Confirmation
+    
+    User->>System: Add Exit Trade
+    System->>TradingEngine: Calculate P&L
+    TradingEngine->>Database: Update Trade
+    TradingEngine->>System: Update Dashboard
+    System-->>User: Exit Confirmation
+    
+    %% Dashboard Interactions
+    User->>System: View Dashboard
+    System->>TradingEngine: Request Metrics
+    TradingEngine->>Database: Get Open Trades
+    TradingEngine->>Database: Get Account History
+    TradingEngine->>System: Return Metrics
+    System-->>User: Display Dashboard
+    
+    %% Positions Page
+    User->>System: View Positions
+    System->>TradingEngine: Get Open Positions
+    TradingEngine->>Database: Query Positions
+    TradingEngine->>ExternalAPI: Get CMP
+    ExternalAPI-->>TradingEngine: Market Data
+    TradingEngine->>System: Position Metrics
+    System-->>User: Display Positions
+    
+    %% Order History
+    User->>System: View Order History
+    System->>Database: Get Trade History
+    Database-->>System: Historical Data
+    System->>TradingEngine: Calculate Historical Metrics
+    TradingEngine-->>System: Processed Data
+    System-->>User: Display History
+    
+    %% Order Detail Page
+    User->>System: Open Order Detail
+    System->>Database: Get Trade Details
+    Database-->>System: Trade Records
+    System->>TradingEngine: Calculate Aggregates
+    TradingEngine-->>System: Summary Metrics
+    System-->>User: Display Detail View
