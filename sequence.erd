@@ -1,3 +1,4 @@
+sequenceDiagram
 box Trading Journal System
 participant AdminUI
 participant UserUI
@@ -24,6 +25,13 @@ TradeService->>MetricsEngine: Calculate Position Metrics
 MetricsEngine->>JournalDB: Persist Trade
 MetricsEngine->>JournalDB: Update Exposure
 JournalDB-->>UserUI: Trade Confirmation
+
+%% Updated Note Handling Flow
+UserUI->>TradeService: Submit Action (Deposit/Withdraw/Trade) with Notes
+TradeService->>JournalDB: Store Action with Notes
+JournalDB-->>TradeService: Storage Confirmation
+TradeService->>MetricsEngine: Update Related Metrics
+MetricsEngine-->>UserUI: Action Confirmation with Notes
 
 %% Analytics Flow
 UserUI->>TradeService: Request Dashboard

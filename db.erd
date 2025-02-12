@@ -1,0 +1,9 @@
+erDiagram
+       trades ||--o{ trade_exits : "Has"
+       trades }|--|| instruments : "Uses"
+       trades }|--|| users : "Belongs to"
+       transactions }|--|| users : "Belongs to"
+       notes }|--|| users : "Authored by"
+       notes }o--|{ transactions : "For Deposit/Withdraw"
+       notes }o--|{ trades : "For Entry"
+       notes }o--|{ trade_exits : "For Exit"
