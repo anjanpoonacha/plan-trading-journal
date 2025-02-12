@@ -1,0 +1,120 @@
+%% sequenceDiagram
+%% box Trading Journal System
+%% participant AdminUI
+%% participant UserUI
+%% participant TradeService
+%% participant MetricsEngine
+%% participant JournalDB
+%% end
+
+%% %% Admin Flow
+%% AdminUI->>TradeService: Manage Asset Types
+%% TradeService->>JournalDB: CRUD Operations
+%% JournalDB-->>TradeService: Confirmation
+%% TradeService-->>AdminUI: Status Update
+
+%% %% User Core Flow
+%% UserUI->>TradeService: Record Deposit/Withdrawal
+%% TradeService->>JournalDB: Store Transaction
+%% JournalDB->>MetricsEngine: Trigger Recalculation
+%% MetricsEngine->>JournalDB: Update Account Metrics
+%% JournalDB-->>UserUI: Balance Update
+
+%% UserUI->>TradeService: Create Trade Entry
+%% TradeService->>MetricsEngine: Calculate Position Metrics
+%% MetricsEngine->>JournalDB: Persist Trade
+%% MetricsEngine->>JournalDB: Update Exposure
+%% JournalDB-->>UserUI: Trade Confirmation
+
+%% %% Analytics Flow
+%% UserUI->>TradeService: Request Dashboard
+%% TradeService->>MetricsEngine: Get Current Metrics
+%% MetricsEngine->>JournalDB: Query Open Positions
+%% MetricsEngine->>JournalDB: Get Account History
+%% MetricsEngine-->>TradeService: Aggregated Data
+%% TradeService-->>UserUI: Display Dashboard
+
+
+
+
+%% sequenceDiagram
+%%     participant User
+%%     participant System
+%%     User->>System: Create Entry Trade (100 shares @ $50)
+%%     System->>DB: Insert trades (qty=100)
+%%     User->>System: Exit 50 shares @ $60
+%%     System->>DB: Insert trade_exits (qty_exited=50)
+%%     User->>System: Exit 30 shares @ $55
+%%     System->>DB: Insert trade_exits (qty_exited=30)
+%%     User->>System: View Position → 20 shares remaining
+
+
+%%     UserUI->>TradeService: "I want to deposit $500"
+%%     TradeService->>JournalDB: Store transaction
+%%     JournalDB->>MetricsEngine: "New deposit happened!"
+%%     MetricsEngine->>JournalDB: Update account totals
+%%     JournalDB-->>UserUI: "Balance now $1500"
+
+
+%% journey
+%%     title Admin Flow
+%%     section Instrument Management
+%%       Create new trading instrument: 5: Admin
+%%       Update existing instrument details: 4: Admin
+%%       Archive deprecated instruments: 3: Admin
+%%     section Subscription Management
+%%       Manage user subscription tiers: 5: Admin
+%%       Process billing updates: 4: Admin
+%%       Handle subscription renewals: 3: Admin
+%%     section System Configuration
+%%       Configure trade metadata fields: 4: Admin
+%%       Set risk calculation parameters: 3: Admin
+%%       Manage API integrations: 2: Admin
+
+
+%%     title User Flow
+%%     section Capital Management
+%%       Record deposit: 5: User
+%%       Record withdrawal: 4: User
+%%       Add transaction notes: 3: User
+%%     section Trade Journaling
+%%       Create entry trade: 5: User
+%%         Add entry rationale note: 4: User
+%%       Record partial exit: 4: User
+%%       Record full exit: 3: User
+%%         Add exit reason note: 3: User
+%%     section Analysis
+%%       View position dashboard: 5: User
+%%       Check exposure metrics: 4: User
+%%       Analyze trade history: 3: User
+%%       Generate performance reports: 2: User
+
+sequenceDiagram
+    Admin->System: POST /instruments
+System->Database: Create instrument record
+Database->System: Return new instrument ID
+System->Admin: Display success message
+
+
+User->System: POST /trades/entry
+System->Validation: Check required fields
+Validation->System: OK
+System->Database: Create trade_entry
+Database->System: Trade ID
+System->Database: Create action_note (trade rationale)
+Database->System: Note ID
+System->MetricsEngine: Recalculate exposure
+MetricsEngine->Database: Update account_metrics
+System->User: Display trade confirmation
+
+
+User->System: POST /capital/withdraw
+System->Validation: Verify sufficient funds
+Validation->System: OK
+System->Database: Create capital_action
+Database->System: Transaction ID
+System->Database: Create action_note (withdraw reason)
+Database->System: Note ID
+System->MetricsEngine: Update capital_deployed
+MetricsEngine->Database: Update account_metrics
+System->User: Show updated balance
