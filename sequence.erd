@@ -1,69 +1,34 @@
-sequenceDiagram
-    participant Admin
-    participant User
-    participant System
-    participant TradingEngine
-    participant Database
-    
-    %% Admin Flows
-    Admin->>System: Manage Instruments
-    System->>Database: CRUD Operations
-    Database-->>System: Instrument Data
-    System-->>Admin: Confirmation
-    
-    Admin->>System: Manage Subscriptions
-    System->>Database: Update User Plans
-    Database-->>System: Subscription Data
-    System-->>Admin: Status Update
-    
-    %% User Core Flows
-    User->>System: DEPOSIT/WITHDRAW
-    System->>TradingEngine: Update Capital
-    TradingEngine->>Database: Record Transaction
-    TradingEngine->>System: Update Account Value
-    System-->>User: Balance Confirmation
-    
-    User->>System: Create Entry Trade
-    System->>TradingEngine: Calculate Metrics
-    TradingEngine->>Database: Store Trade
-    TradingEngine->>System: Update Position Metrics
-    System-->>User: Trade Confirmation
-    
-    User->>System: Add Exit Trade
-    System->>TradingEngine: Calculate P&L
-    TradingEngine->>Database: Update Trade
-    TradingEngine->>System: Update Dashboard
-    System-->>User: Exit Confirmation
-    
-    %% Dashboard Interactions
-    User->>System: View Dashboard
-    System->>TradingEngine: Request Metrics
-    TradingEngine->>Database: Get Open Trades
-    TradingEngine->>Database: Get Account History
-    TradingEngine->>System: Return Metrics
-    System-->>User: Display Dashboard
-    
-    %% Positions Page
-    User->>System: View Positions
-    System->>TradingEngine: Get Open Positions
-    TradingEngine->>Database: Query Positions
-    TradingEngine->>ExternalAPI: Get CMP
-    ExternalAPI-->>TradingEngine: Market Data
-    TradingEngine->>System: Position Metrics
-    System-->>User: Display Positions
-    
-    %% Order History
-    User->>System: View Order History
-    System->>Database: Get Trade History
-    Database-->>System: Historical Data
-    System->>TradingEngine: Calculate Historical Metrics
-    TradingEngine-->>System: Processed Data
-    System-->>User: Display History
-    
-    %% Order Detail Page
-    User->>System: Open Order Detail
-    System->>Database: Get Trade Details
-    Database-->>System: Trade Records
-    System->>TradingEngine: Calculate Aggregates
-    TradingEngine-->>System: Summary Metrics
-    System-->>User: Display Detail View
+box Trading Journal System
+participant AdminUI
+participant UserUI
+participant TradeService
+participant MetricsEngine
+participant JournalDB
+end
+
+%% Admin Flow
+AdminUI->>TradeService: Manage Asset Types
+TradeService->>JournalDB: CRUD Operations
+JournalDB-->>TradeService: Confirmation
+TradeService-->>AdminUI: Status Update
+
+%% User Core Flow
+UserUI->>TradeService: Record Deposit/Withdrawal
+TradeService->>JournalDB: Store Transaction
+JournalDB->>MetricsEngine: Trigger Recalculation
+MetricsEngine->>JournalDB: Update Account Metrics
+JournalDB-->>UserUI: Balance Update
+
+UserUI->>TradeService: Create Trade Entry
+TradeService->>MetricsEngine: Calculate Position Metrics
+MetricsEngine->>JournalDB: Persist Trade
+MetricsEngine->>JournalDB: Update Exposure
+JournalDB-->>UserUI: Trade Confirmation
+
+%% Analytics Flow
+UserUI->>TradeService: Request Dashboard
+TradeService->>MetricsEngine: Get Current Metrics
+MetricsEngine->>JournalDB: Query Open Positions
+MetricsEngine->>JournalDB: Get Account History
+MetricsEngine-->>TradeService: Aggregated Data
+TradeService-->>UserUI: Display Dashboard
