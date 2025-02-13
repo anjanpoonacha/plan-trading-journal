@@ -1,4 +1,5 @@
 
+```mermaid
 sequenceDiagram
 box Trades Journaling System
 participant AdminUI
@@ -42,3 +43,4 @@ TradeService->>JournalDB: Get Current Metrics
 %% Materialized View->>JournalDB: Get Account History
 JournalDB-->>TradeService: Aggregated Data
 TradeService-->>UserUI: Display Dashboard
+```
