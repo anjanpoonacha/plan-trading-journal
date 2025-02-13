@@ -1,10 +1,11 @@
+
 sequenceDiagram
-box Trading Journal System
+box Trades Journaling System
 participant AdminUI
 participant UserUI
 participant TradeService
-participant MetricsEngine
 participant JournalDB
+participant Materialized View
 end
 
 %% Admin Flow
@@ -16,27 +17,28 @@ TradeService-->>AdminUI: Status Update
 %% User Core Flow
 UserUI->>TradeService: Record Deposit/Withdrawal
 TradeService->>JournalDB: Store Transaction
-JournalDB->>MetricsEngine: Trigger Recalculation
-MetricsEngine->>JournalDB: Update Account Metrics
+JournalDB->>Materialized View: Trigger Recalculation
+Materialized View->>JournalDB: Update Account Metrics
 JournalDB-->>UserUI: Balance Update
 
 UserUI->>TradeService: Create Trade Entry
-TradeService->>MetricsEngine: Calculate Position Metrics
-MetricsEngine->>JournalDB: Persist Trade
-MetricsEngine->>JournalDB: Update Exposure
+TradeService->>JournalDB: Persist Trade
+JournalDB->>Materialized View: Calculate Position Metrics
+Materialized View->>JournalDB: Update all metrics (Exposure etc)
 JournalDB-->>UserUI: Trade Confirmation
 
 %% Updated Note Handling Flow
 UserUI->>TradeService: Submit Action (Deposit/Withdraw/Trade) with Notes
 TradeService->>JournalDB: Store Action with Notes
 JournalDB-->>TradeService: Storage Confirmation
-TradeService->>MetricsEngine: Update Related Metrics
-MetricsEngine-->>UserUI: Action Confirmation with Notes
+JournalDB->>Materialized View: Update Related Metrics
+TradeService-->>UserUI: Action Confirmation with Notes
 
-%% Analytics Flow
+%% Analytics Flow Eg
 UserUI->>TradeService: Request Dashboard
-TradeService->>MetricsEngine: Get Current Metrics
-MetricsEngine->>JournalDB: Query Open Positions
-MetricsEngine->>JournalDB: Get Account History
-MetricsEngine-->>TradeService: Aggregated Data
+TradeService->>JournalDB: Get Current Metrics
+%% TradeService->>Materialized View: Get Current Metrics
+%% Materialized View->>JournalDB: Query Open Positions
+%% Materialized View->>JournalDB: Get Account History
+JournalDB-->>TradeService: Aggregated Data
 TradeService-->>UserUI: Display Dashboard

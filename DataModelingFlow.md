@@ -119,10 +119,14 @@ Future Scope
         - Actions
 
     The table must have the exit records and above metrics for each record, along with overall totals in the last row.
+    - User can activate the following actions:
+        - Delete Entry / Exit record
+        - Edit the Entry / Exit record
 
 - User opens the `Funds` section:
     - Can `DEPOSIT` X amount.
     - Can `WITHDRAW` X amount.
+    - Can undo any of the above actions
 
 
 
