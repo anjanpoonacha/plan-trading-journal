@@ -5,6 +5,15 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+
+CREATE TABLE journals (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id),
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, name)  -- One journal name per user
+); 
+
 CREATE TABLE instruments (
     id SERIAL PRIMARY KEY,
     symbol VARCHAR(50) UNIQUE NOT NULL,
@@ -211,3 +220,4 @@ EXECUTE FUNCTION refresh_metrics();
 -- 0 2 * * * psql -c "REFRESH MATERIALIZED VIEW CONCURRENTLY summary_view_mv;"
 -- -- On trade modifications
 -- CREATE TRIGGER refresh_summary AFTER INSERT OR UPDATE ON trade_exits 
+
