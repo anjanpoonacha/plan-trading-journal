@@ -9,44 +9,45 @@ SELECT
     te.entry_price,
     te.stop_loss AS sl,
     (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
-    te.current_stop_loss,
     (te.quantity * te.entry_price) AS exposure,
-    (te.quantity * te.entry_price) / um.account_value * 100 AS exposure_pct,
-    um.total_exposure,
-    um.total_exposure_pct,
+    (te.quantity * te.entry_price) / jm.account_value * 100 AS exposure_pct,
+    jm.total_exposure,
+    jm.total_exposure_pct,
     CASE te.direction
         WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0))
         ELSE (te.entry_price - te.current_stop_loss) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0))
     END AS open_risk,
     CASE te.direction
-        WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) / um.account_value * 100
-        ELSE (te.entry_price - te.current_stop_loss) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) / um.account_value * 100
+        WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) / jm.account_value * 100
+        ELSE (te.entry_price - te.current_stop_loss) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) / jm.account_value * 100
     END AS open_risk_pct,
-    um.total_open_risk,
-    um.total_open_risk_pct
+    jm.total_open_risk,
+    jm.total_open_risk_pct
 FROM trade_entries te
-LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
-JOIN user_metrics um ON te.user_id = um.user_id
-GROUP BY te.id, um.account_value, um.total_exposure, um.total_exposure_pct, um.total_open_risk, um.total_open_risk_pct;
+LEFT JOIN trade_exits te2 ON te.id = te2.entry_id AND te.journal_id = te2.journal_id
+JOIN journal_metrics jm ON te.journal_id = jm.journal_id
+GROUP BY te.id, jm.account_value, jm.total_exposure, jm.total_exposure_pct, jm.total_open_risk, jm.total_open_risk_pct;
 
 -- Revised Order History View with Account Gain %
 CREATE OR REPLACE VIEW order_history_view AS
 WITH historical_account_value AS (
     SELECT
         te.id AS trade_id,
+        te.journal_id,
         SUM(f.amount) FILTER (WHERE f.type = 'DEPOSIT' AND f.transaction_date <= te.entry_date) -
-        SUM(f.amount) FILTER (WHERE f.type = 'WITHDRAW' AND f.transaction_date <= te.entry_date) +
+        SUM(f.amount) FILTER (WHERE f.type = 'WITHDRAW' AND f.transaction_date <= te.entry_date) 
+            AS trade_date_capital,
         COALESCE(SUM(te2.net_profit) FILTER (WHERE te2.exit_date <= te.entry_date), 0) 
-            AS trade_date_account_value
+            AS prior_profits
     FROM trade_entries te
-    LEFT JOIN funds f ON te.user_id = f.user_id
+    JOIN funds f ON te.journal_id = f.journal_id
     LEFT JOIN (
-        SELECT entry_id, exit_date,
+        SELECT entry_id, journal_id, exit_date,
                SUM((exit_price - entry_price) * quantity_exited) AS net_profit
         FROM trade_exits
-        GROUP BY entry_id, exit_date
-    ) te2 ON te.id = te2.entry_id
-    GROUP BY te.id
+        GROUP BY entry_id, journal_id, exit_date
+    ) te2 ON te.id = te2.entry_id AND te.journal_id = te2.journal_id
+    GROUP BY te.id, te.journal_id
 ),
 trade_exits_agg AS (
     SELECT 
@@ -68,19 +69,18 @@ SELECT
     te.stop_loss AS sl,
     (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
     (te.quantity * te.entry_price) AS position_size,
-    (te.quantity * te.entry_price) / hav.trade_date_account_value * 100 AS position_size_pct,
+    (te.quantity * te.entry_price) / (hav.trade_date_capital + hav.prior_profits) * 100 AS position_size_pct,
     te.quantity * (te.entry_price - te.stop_loss) AS rpt,
-    (te.quantity * (te.entry_price - te.stop_loss)) / hav.trade_date_account_value * 100 AS rpt_pct,
+    (te.quantity * (te.entry_price - te.stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
     COALESCE(tea.total_exited / te.quantity * 100, 0) AS exit_pct,
     tea.avg_exit_price,
     tea.latest_exit_date,
     (tea.avg_exit_price - te.entry_price) / te.entry_price * 100 AS gain_pct,
-    hav.trade_date_account_value AS capital_deployed,
-    (tea.avg_exit_price - te.entry_price) * te.quantity / hav.trade_date_account_value * 100 AS rocd,
-    um.starting_account,
-    (tea.avg_exit_price - te.entry_price) * te.quantity / um.starting_account * 100 AS rosav,
-    um.account_value,
-    ((tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges) / hav.trade_date_account_value * 100 AS account_gain_pct,
+    hav.trade_date_capital AS capital_deployed,
+    (tea.avg_exit_price - te.entry_price) * te.quantity / hav.trade_date_capital * 100 AS rocd,
+    jm.starting_account,
+    (tea.avg_exit_price - te.entry_price) * te.quantity / jm.starting_account * 100 AS rosav,
+    ((tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges) / (hav.trade_date_capital + hav.prior_profits) * 100 AS account_gain_pct,
     EXTRACT(DAY FROM NOW() - te.entry_date) AS days,
     CASE
         WHEN (te.entry_price - te.stop_loss) <> 0 
@@ -91,10 +91,20 @@ SELECT
     (tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges AS net_profit
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
-LEFT JOIN trade_exits_agg tea ON te.id = tea.entry_id
-JOIN historical_account_value hav ON te.id = hav.trade_id
-JOIN user_metrics um ON te.user_id = um.user_id
-GROUP BY te.id, i.symbol, um.capital_deployed, um.account_value, um.starting_account, le.exit_price_avg, le.latest_exit_date;
+LEFT JOIN (
+    SELECT 
+        entry_id,
+        journal_id,
+        SUM(quantity_exited) AS total_exited,
+        MAX(exit_date) AS latest_exit_date,
+        AVG(exit_price) AS avg_exit_price,
+        SUM(charges) AS total_charges
+    FROM trade_exits
+    GROUP BY entry_id, journal_id
+) tea ON te.id = tea.entry_id AND te.journal_id = tea.journal_id
+JOIN historical_account_value hav ON te.id = hav.trade_id AND te.journal_id = hav.journal_id
+JOIN journal_metrics jm ON te.journal_id = jm.journal_id
+GROUP BY te.id, i.symbol, jm.capital_deployed, jm.account_value, jm.starting_account;
 
 -- 3. Order Detail View (DataModelingFlow.md lines 107-124)
 CREATE OR REPLACE VIEW order_detail_view AS
@@ -105,13 +115,13 @@ SELECT
     te.entry_date,
     AVG(te.entry_price) AS avg_entry_price,
     AVG(te2.exit_price) AS avg_exit_price,
-    um.account_value,
+    jm.account_value,
     (te.quantity * te.entry_price) AS position_size,
-    (te.quantity * te.entry_price) / um.account_value * 100 AS position_size_pct,
+    (te.quantity * te.entry_price) / jm.account_value * 100 AS position_size_pct,
     te.stop_loss,
     (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
     te.risk AS rpt,
-    te.risk / um.account_value * 100 AS rpt_pct,
+    te.risk / jm.account_value * 100 AS rpt_pct,
     jsonb_agg(jsonb_build_object(
         'type', 'EXIT',
         'date', te2.exit_date,
@@ -128,8 +138,8 @@ SELECT
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
-JOIN user_metrics um ON te.user_id = um.user_id
-GROUP BY te.id, i.symbol, um.account_value;
+JOIN journal_metrics jm ON te.journal_id = jm.journal_id
+GROUP BY te.id, i.symbol, jm.account_value;
 
 -- 4. Summary View (metricsExplained/4.Summary.md lines 7-82)
 CREATE MATERIALIZED VIEW summary_view AS
@@ -168,11 +178,11 @@ SELECT
     td.total_profit,
     td.total_charges,
     td.total_profit - td.total_charges AS net_profit,
-    um.account_value,
-    um.capital_deployed,
-    (td.net_profit / um.capital_deployed) * 100 AS rocd,
-    (td.net_profit / um.starting_account) * 100 AS rosav,
+    jm.account_value,
+    jm.capital_deployed,
+    (td.net_profit / jm.capital_deployed) * 100 AS rocd,
+    (td.net_profit / jm.starting_account) * 100 AS rosav,
 	SUM(t.account_gain_pct) AS total_account_gain_pct,
     AVG(t.account_gain_pct) AS avg_account_gain_pct
 FROM trade_data td
-JOIN user_metrics um ON true;
+JOIN journal_metrics jm ON true;
