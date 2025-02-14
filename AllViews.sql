@@ -68,7 +68,32 @@ WITH exit_aggregates AS (
         'exit_date', exit_date,
         'exit_price', exit_price,
         'quantity_exited', quantity_exited,
-        'charges', trade_exits.charges
+        'charges', trade_exits.charges,
+        'profit', 
+          CASE te.direction
+            WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
+            ELSE (te.entry_price - exit_price) * quantity_exited
+          END - trade_exits.charges,
+        'r_multiple',
+          CASE WHEN te.risk != 0 THEN
+            (CASE te.direction
+              WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
+              ELSE (te.entry_price - exit_price) * quantity_exited
+            END - trade_exits.charges) / te.risk
+          END,
+        'r_multiple_per_unit',
+          CASE WHEN (te.entry_price - te.stop_loss) != 0 THEN
+            (CASE te.direction
+              WHEN 'LONG' THEN (exit_price - te.entry_price)
+              ELSE (te.entry_price - exit_price)
+            END * quantity_exited - trade_exits.charges) 
+            / ((te.entry_price - te.stop_loss) * quantity_exited)
+          END,
+        'gain_pct',
+          CASE te.direction
+            WHEN 'LONG' THEN (exit_price - te.entry_price)/te.entry_price
+            ELSE (te.entry_price - exit_price)/te.entry_price
+          END * 100
       ) ORDER BY exit_date
     ) AS exit_records,
     SUM(exit_price * quantity_exited) AS total_exit_price,
@@ -147,16 +172,6 @@ FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 JOIN trade_account_values tav ON te.id = tav.id
 LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id;
-
-CREATE MATERIALIZED VIEW trade_detail_metrics AS
-SELECT 
-  thm.*,
-  (exit_record->>'exit_date')::timestamptz AS exit_date,
-  (exit_record->>'exit_price')::numeric(18,8) AS specific_exit_price,
-  (exit_record->>'quantity_exited')::numeric(18,8) AS exited_quantity,
-  (exit_record->>'charges')::numeric(18,8) AS exit_charges
-FROM trade_history_metrics thm
-LEFT JOIN LATERAL JSONB_ARRAY_ELEMENTS(thm.exit_records) AS exit_record ON true;
 
 CREATE MATERIALIZED VIEW summary_metrics AS
 SELECT
