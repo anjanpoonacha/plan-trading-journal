@@ -82,8 +82,13 @@ SELECT
   ), 0) * 100 AS rpt_pct,
   
   COALESCE(SUM(te2.quantity_exited) OVER (PARTITION BY te.id), 0) / te.quantity * 100 AS exit_pct,
-  (SELECT MAX(exit_date) FROM trade_exits WHERE entry_id = te.id) AS latest_exit_date,
-  EXTRACT(DAYS FROM COALESCE(latest_exit_date, CURRENT_DATE) - te.entry_date) AS days_held
+  MAX(te2.exit_date) OVER (PARTITION BY te.id) AS latest_exit_date,
+  EXTRACT(DAYS FROM 
+    COALESCE(
+      MAX(te2.exit_date) OVER (PARTITION BY te.id),
+      CURRENT_DATE
+    ) - te.entry_date
+  ) AS days_held
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 LEFT JOIN trade_exits te2 ON te.id = te2.entry_id;
