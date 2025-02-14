@@ -4,6 +4,8 @@ drop materialized view if exists trade_history_metrics cascade;
 drop materialized view if exists trade_detail_metrics cascade;
 drop materialized view if exists summary_metrics cascade;
 drop materialized view if exists daily_metrics cascade;
+drop index if exists idx_dm_journal_date;
+drop function if exists get_summary_metrics(TEXT, UUID);
 
 CREATE MATERIALIZED VIEW dashboard_metrics AS
 SELECT
@@ -259,33 +261,70 @@ LEFT JOIN trade_metrics tm ON ds.metric_date = tm.metric_date
 LEFT JOIN fund_flow ff ON ds.metric_date = ff.metric_date
 LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date;
 
-CREATE INDEX idx_daily_metrics_date ON daily_metrics(metric_date);
+CREATE INDEX idx_dm_journal_date ON daily_metrics(journal_id, metric_date);
 
-CREATE MATERIALIZED VIEW summary_metrics AS
-SELECT
-  date_trunc('month', metric_date)::date AS period_start,
-  'month' AS period_type,
-  SUM(profit) AS gross_profit,
-  SUM(charges) AS total_charges,
-  SUM(net_profit) AS net_profit,
-  SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
-  MAX(account_value) AS ending_account_value,
-  MIN(account_value - net_profit) AS starting_account_value,
-  (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
-FROM daily_metrics
-GROUP BY 1
+-- CREATE MATERIALIZED VIEW summary_metrics AS
+-- SELECT
+--   date_trunc('month', metric_date)::date AS period_start,
+--   'month' AS period_type,
+--   SUM(profit) AS gross_profit,
+--   SUM(charges) AS total_charges,
+--   SUM(net_profit) AS net_profit,
+--   SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
+--   MAX(account_value) AS ending_account_value,
+--   MIN(account_value - net_profit) AS starting_account_value,
+--   (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
+-- FROM daily_metrics
+-- GROUP BY 1
 
-UNION ALL
+-- UNION ALL
 
-SELECT
-  date_trunc('year', metric_date)::date AS period_start,
-  'year' AS period_type,
-  SUM(profit) AS gross_profit,
-  SUM(charges) AS total_charges,
-  SUM(net_profit) AS net_profit,
-  SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
-  MAX(account_value) AS ending_account_value,
-  MIN(account_value - net_profit) AS starting_account_value,
-  (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
-FROM daily_metrics
-GROUP BY 1;
+-- SELECT
+--   date_trunc('year', metric_date)::date AS period_start,
+--   'year' AS period_type,
+--   SUM(profit) AS gross_profit,
+--   SUM(charges) AS total_charges,
+--   SUM(net_profit) AS net_profit,
+--   SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
+--   MAX(account_value) AS ending_account_value,
+--   MIN(account_value - net_profit) AS starting_account_value,
+--   (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
+-- FROM daily_metrics
+-- GROUP BY 1;
+
+CREATE OR REPLACE FUNCTION get_summary_metrics(
+  period_type TEXT DEFAULT 'month', 
+  journal_id UUID
+)
+RETURNS TABLE (
+  period_start DATE,
+  period_type TEXT,
+  gross_profit NUMERIC,
+  charges NUMERIC,
+  net_profit NUMERIC,
+  net_fund_flow NUMERIC,
+  ending_account_value NUMERIC,
+  starting_account_value NUMERIC,
+  roi_pct NUMERIC
+) AS $$
+BEGIN
+  RETURN QUERY EXECUTE format('
+    SELECT
+      date_trunc(%L, dm.metric_date)::date AS period_start,
+      %L AS period_type,
+      SUM(dm.profit) AS gross_profit,
+      SUM(dm.charges) AS charges,
+      SUM(dm.net_profit) AS net_profit,
+      SUM(dm.deposits) - SUM(dm.withdrawals) AS net_fund_flow,
+      MAX(dm.account_value) AS ending_account_value,
+      MIN(dm.account_value - dm.net_profit) AS starting_account_value,
+      (SUM(dm.net_profit) / NULLIF(MIN(dm.account_value - dm.net_profit), 0)) * 100 AS roi_pct
+    FROM daily_metrics dm
+    WHERE dm.journal_id = $1
+    GROUP BY 1
+    ORDER BY 1 DESC',
+    period_type,
+    period_type
+  ) USING journal_id;
+END;
+$$ LANGUAGE plpgsql;
