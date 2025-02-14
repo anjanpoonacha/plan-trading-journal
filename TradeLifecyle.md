@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
     participant User
     participant System
@@ -8,3 +9,4 @@ sequenceDiagram
     User->>System: Exit 30 shares @ 55
     System->>DB: Insert trade_exits (qty_exited=30)
     User->>System: View Position → 20 shares remaining
+    ```
