@@ -47,36 +47,46 @@ SELECT
   END * 100 AS sl_pct,
   te.exposure AS position_size,
   te.exposure / NULLIF((
-    SELECT account_value 
-    FROM journal_metrics 
-    WHERE journal_id = te.journal_id
-      AND created_at <= te.entry_date
-    ORDER BY created_at DESC
-    LIMIT 1
+    SELECT COALESCE(SUM(f.amount) FILTER (WHERE f.type = 'DEPOSIT'), 0) 
+         - COALESCE(SUM(f.amount) FILTER (WHERE f.type = 'WITHDRAW'), 0)
+         + COALESCE(SUM(
+             CASE te_inner.direction
+               WHEN 'LONG' THEN (ex.exit_price - te_inner.entry_price) * ex.quantity_exited
+               ELSE (te_inner.entry_price - ex.exit_price) * ex.quantity_exited
+             END - ex.charges
+           ), 0)
+    FROM funds f
+    LEFT JOIN trade_entries te_inner ON f.journal_id = te_inner.journal_id
+    LEFT JOIN trade_exits ex ON ex.entry_id = te_inner.id 
+      AND ex.exit_date <= te.entry_date
+    WHERE f.journal_id = te.journal_id
+      AND f.transaction_date <= te.entry_date
   ), 0) * 100 AS position_size_pct,
+  
   te.risk AS rpt,
   te.risk / NULLIF((
-    SELECT account_value 
-    FROM journal_metrics 
-    WHERE journal_id = te.journal_id
-      AND created_at <= te.entry_date
-    ORDER BY created_at DESC
-    LIMIT 1
+    SELECT COALESCE(SUM(f.amount) FILTER (WHERE f.type = 'DEPOSIT'), 0) 
+         - COALESCE(SUM(f.amount) FILTER (WHERE f.type = 'WITHDRAW'), 0)
+         + COALESCE(SUM(
+             CASE te_inner.direction
+               WHEN 'LONG' THEN (ex.exit_price - te_inner.entry_price) * ex.quantity_exited
+               ELSE (te_inner.entry_price - ex.exit_price) * ex.quantity_exited
+             END - ex.charges
+           ), 0)
+    FROM funds f
+    LEFT JOIN trade_entries te_inner ON f.journal_id = te_inner.journal_id
+    LEFT JOIN trade_exits ex ON ex.entry_id = te_inner.id 
+      AND ex.exit_date <= te.entry_date
+    WHERE f.journal_id = te.journal_id
+      AND f.transaction_date <= te.entry_date
   ), 0) * 100 AS rpt_pct,
+  
   COALESCE(SUM(te2.quantity_exited) OVER (PARTITION BY te.id), 0) / te.quantity * 100 AS exit_pct,
   (SELECT MAX(exit_date) FROM trade_exits WHERE entry_id = te.id) AS latest_exit_date,
   EXTRACT(DAYS FROM COALESCE(latest_exit_date, CURRENT_DATE) - te.entry_date) AS days_held
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
-LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
-CROSS JOIN LATERAL (
-  SELECT account_value 
-  FROM journal_metrics 
-  WHERE journal_id = te.journal_id
-    AND created_at <= te.entry_date
-  ORDER BY created_at DESC
-  LIMIT 1
-) jm;
+LEFT JOIN trade_exits te2 ON te.id = te2.entry_id;
 
 CREATE MATERIALIZED VIEW trade_detail_metrics AS
 SELECT
