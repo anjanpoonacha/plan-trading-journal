@@ -1,9 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
+
+const file = 'backup_with_minimal.json';
 // Configuration
-const inputFile = path.join(__dirname, 'backup.json');
-const outputFile = path.join(__dirname, 'migration.sql');
+const inputFile = path.join(__dirname, file);
+const outputFile = path.join(__dirname, `migration_${file}.sql`);
+
+// Add this constant at the top of the file
+const USER_ID = '8D9B81B5-A028-4643-8CEF-645495AFAD55';
 
 // Helper functions
 const toSqlDate = (isoString) => isoString ? `'${isoString.split('.')[0].replace('T', ' ')}'` : 'NOW()';
@@ -32,8 +37,9 @@ async function convertJsonToSql() {
     }
     
     // Extract journal and other data from the nested structure
-    const journal = data.data;
-    const { orders, funds, notes } = data.data;
+	  const journal = data.data;
+	  journal.userId = USER_ID;
+    const { orders, funds, notes, instruments: rawInstruments } = data.data;
     
     // Validate journal exists
     if (!journal || !journal.id) {
@@ -53,65 +59,92 @@ async function convertJsonToSql() {
 
     const inserts = [];
     
-    // 1. Insert Journal
+    // 1. Insert Users
     inserts.push(`
-INSERT INTO journals (id, user_id, name, country_id, created_at, updated_at)
+INSERT INTO users (id, email, created_at)
 VALUES (
-  ${escape(journal.id)},
-  ${escape(journal.userId)},
-  ${escape(journal.name)},
-  ${escape(journal.countryId)},
-  ${toSqlDate(journal.createdAt)},
-  ${toSqlDate(journal.updatedAt)}
+  '${USER_ID}',
+  'placeholder@example.com',
+  NOW()
 );`);
 
-    // 2. Insert Trade Entries (Orders)
+    // 2. Insert Journal
+    inserts.push(`
+INSERT INTO journals (id, user_id, name, created_at)
+VALUES (
+  ${escape(journal.id)},
+  '${USER_ID}',
+  ${escape(journal.name)},
+  ${toSqlDate(journal.createdAt)}
+);`);
+
+    // Add instrument processing before trade entries
+    const instruments = new Map();
+    orders.forEach(order => {
+      if (order.instrumentId && !instruments.has(order.instrumentId)) {
+        instruments.set(order.instrumentId, {
+          id: order.instrumentId,
+          symbol: `SYM-${order.instrumentId.slice(0, 8)}`, // Placeholder
+          name: `Instrument ${order.instrumentId.slice(0, 8)}`,
+          type: 'stock' // Default type
+        });
+      }
+    });
+
+    // 3. Insert Instruments
+    Array.from(instruments.values()).forEach(instrument => {
+      inserts.push(`
+INSERT INTO instruments (id, symbol, name, type)
+VALUES (
+  ${escape(instrument.id)},
+  ${escape(instrument.symbol)},
+  ${escape(instrument.name)},
+  ${escape(instrument.type)}
+) ON CONFLICT (id) DO NOTHING;`);
+    });
+
+    // 4. Insert Trade Entries (Orders)
     orders.forEach(order => {
       inserts.push(`
 INSERT INTO trade_entries (
-  id, journal_id, instrument_id, user_id, direction, 
-  entry_price, quantity, stop_loss, charges, 
-  entry_date, created_at, updated_at
+  id, user_id, instrument_id, direction, quantity, 
+  entry_price, stop_loss, entry_date, journal_id
 ) VALUES (
   ${escape(order.id)},
-  ${escape(order.journalId)},
+  '${USER_ID}',
   ${escape(order.instrumentId)},
-  ${escape(order.userId)},
   ${order.type === 'BUY' ? "'LONG'" : "'SHORT'"},
-  ${sqlValue(order.price, true)},
   ${sqlValue(order.quantity, true)},
+  ${sqlValue(order.price, true)},
   ${sqlValue(order.stoploss, true)},
-  ${sqlValue(order.charges, true)},
   ${toSqlDate(order.date)},
-  ${toSqlDate(order.createdAt)},
-  ${toSqlDate(order.updatedAt)}
+  ${escape(order.journalId)}
 );`);
 
-      // 3. Insert Trade Exits (Close Orders)
+      // 4. Insert Trade Exits (Close Orders)
       order.closeOrders.forEach(closeOrder => {
         inserts.push(`
 INSERT INTO trade_exits (
-  id, entry_id, journal_id, exit_price, quantity_exited, 
-  charges, exit_date, created_at, updated_at
+  id, entry_id, exit_date, exit_price, quantity_exited, 
+  charges, entry_price, journal_id
 ) VALUES (
   ${escape(closeOrder.id)},
   ${escape(order.id)},
-  ${escape(order.journalId)},
+  ${toSqlDate(closeOrder.date)},
   ${sqlValue(closeOrder.price, true)},
   ${sqlValue(closeOrder.quantity, true)},
   ${sqlValue(closeOrder.charges, true)},
-  ${toSqlDate(closeOrder.date)},
-  ${toSqlDate(closeOrder.createdAt)},
-  ${toSqlDate(closeOrder.updatedAt)}
+  ${sqlValue(order.price, true)},
+  ${escape(order.journalId)}
 );`);
       });
     });
 
-    // 4. Insert Notes (Trade, Journal, and Exit notes)
+    // 5. Insert Notes (Trade, Journal, and Exit notes)
     const allNotes = [
-      ...notes,
-      ...orders.flatMap(o => o.notes),
-      ...orders.flatMap(o => o.closeOrders.flatMap(co => co.notes))
+    //   ...notes,
+    //   ...orders.flatMap(o => o.notes),
+    //   ...orders.flatMap(o => o.closeOrders.flatMap(co => co.notes))
     ];
 
     allNotes.forEach(note => {
@@ -128,36 +161,32 @@ INSERT INTO trade_exits (
 
       inserts.push(`
 INSERT INTO notes (
-  id, user_id, journal_id, noteable_type, noteable_id, 
-  content, chart_url, created_at, updated_at
+  id, user_id, noteable_type, noteable_id, content, 
+  journal_id, created_at
 ) VALUES (
   ${escape(note.id)},
-  ${escape(note.userId)},
-  ${escape(note.journalId || journal.id)},
+  '${USER_ID}',
   '${noteableType}',
   ${escape(noteableId)},
   ${sqlValue(note.content)},
-  ${sqlValue(note.chartUrl)},
-  ${toSqlDate(note.createdAt)},
-  ${toSqlDate(note.updatedAt)}
+  ${escape(note.journalId || journal.id)},
+  ${toSqlDate(note.createdAt)}
 );`);
     });
 
-    // 5. Insert Funds
+    // 6. Insert Funds
     funds.forEach(fund => {
       inserts.push(`
 INSERT INTO funds (
-  id, user_id, journal_id, type, amount, 
-  transaction_date, created_at, updated_at
+  id, user_id, type, amount, transaction_date, 
+  journal_id
 ) VALUES (
   ${escape(fund.id)},
-  ${escape(fund.userId)},
-  ${escape(fund.journalId)},
+  '${USER_ID}',
   '${fund.type === 'WITHDRAW' ? 'WITHDRAW' : 'DEPOSIT'}',
   ${sqlValue(Math.abs(fund.amount), true)},
   ${toSqlDate(fund.date)},
-  ${toSqlDate(fund.createdAt)},
-  ${toSqlDate(fund.updatedAt)}
+  ${escape(fund.journalId)}
 );`);
     });
 

@@ -177,7 +177,10 @@ SELECT
     otb.exposure / NULLIF(um.account_value, 0) AS exposure_pct,
     otb.open_risk / NULLIF(um.account_value, 0) AS open_risk_pct
 FROM open_trades_base otb
-JOIN journal_metrics um ON otb.journal_id = um.journal_id;
+JOIN journal_metrics um ON otb.journal_id = um.journal_id
+
+-- Add this after creating the position_metrics view
+CREATE UNIQUE INDEX idx_position_metrics_id ON position_metrics (id);
 
 -- Indexes and Refresh Triggers (Optimized for JournalingSystem.md flows)
 CREATE INDEX idx_trade_entries_user ON trade_entries(user_id);

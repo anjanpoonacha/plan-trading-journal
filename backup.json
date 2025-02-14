@@ -4,7 +4,7 @@
 		"id": "cd03b578-8769-47db-a51d-be9be4584bac",
 		"createdAt": "2024-02-15T05:34:11.292Z",
 		"updatedAt": "2024-04-21T08:32:44.162Z",
-		"userId": "clsmsd6c9000jmr54nihnxz0v",
+		"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 		"name": "India",
 		"countryId": "india",
 		"orders": [
@@ -23,7 +23,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "c707f718-6be8-486d-ae33-db5d63167031",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -35,7 +35,7 @@
 						"quantity": 4,
 						"charges": 18,
 						"openOrderId": "378d5307-2a4d-4d5f-94dd-2dc32e357c8b",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": [
 							{
 								"id": "a6ae6362-f362-42a9-9812-c3f3b190296f",
@@ -43,7 +43,7 @@
 								"updatedAt": "2024-04-11T08:31:48.571Z",
 								"content": "Exited as it had no meaning.",
 								"date": null,
-								"userId": "clsmsd6c9000jmr54nihnxz0v",
+								"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 								"chartUrl": null,
 								"instrumentId": "c707f718-6be8-486d-ae33-db5d63167031",
 								"orderId": "378d5307-2a4d-4d5f-94dd-2dc32e357c8b",
@@ -59,7 +59,7 @@
 								"updatedAt": "2024-04-14T07:26:43.692Z",
 								"content": "simply",
 								"date": null,
-								"userId": "clsmsd6c9000jmr54nihnxz0v",
+								"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 								"chartUrl": null,
 								"instrumentId": "c707f718-6be8-486d-ae33-db5d63167031",
 								"orderId": "378d5307-2a4d-4d5f-94dd-2dc32e357c8b",
@@ -79,7 +79,7 @@
 						"updatedAt": "2024-04-10T11:47:29.504Z",
 						"content": "Copied from the AL telegram.",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/6Tz7nqHi/",
 						"instrumentId": "c707f718-6be8-486d-ae33-db5d63167031",
 						"orderId": "378d5307-2a4d-4d5f-94dd-2dc32e357c8b",
@@ -95,7 +95,7 @@
 						"updatedAt": "2024-04-11T08:31:48.571Z",
 						"content": "Exited as it had no meaning.",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": null,
 						"instrumentId": "c707f718-6be8-486d-ae33-db5d63167031",
 						"orderId": "378d5307-2a4d-4d5f-94dd-2dc32e357c8b",
@@ -111,7 +111,7 @@
 						"updatedAt": "2024-04-11T08:32:33.809Z",
 						"content": "Testing the strategy",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": null,
 						"instrumentId": "c707f718-6be8-486d-ae33-db5d63167031",
 						"orderId": "378d5307-2a4d-4d5f-94dd-2dc32e357c8b",
@@ -127,7 +127,7 @@
 						"updatedAt": "2024-04-14T07:26:43.692Z",
 						"content": "simply",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": null,
 						"instrumentId": "c707f718-6be8-486d-ae33-db5d63167031",
 						"orderId": "378d5307-2a4d-4d5f-94dd-2dc32e357c8b",
@@ -154,7 +154,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "5086e20a-8c41-4ae3-9682-8f957b7c3a4d",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -166,7 +166,7 @@
 						"quantity": 100,
 						"charges": 65.82,
 						"openOrderId": "434de719-935b-4a05-bf1b-bdf427f9f40d",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -177,7 +177,7 @@
 						"updatedAt": "2024-04-10T13:38:15.440Z",
 						"content": "Nice contracted candle.\nEven though I was watching this closes. Had confirmation from the group. Garry",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/Is0GUqYm/",
 						"instrumentId": "5086e20a-8c41-4ae3-9682-8f957b7c3a4d",
 						"orderId": "434de719-935b-4a05-bf1b-bdf427f9f40d",
@@ -204,7 +204,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "5086e20a-8c41-4ae3-9682-8f957b7c3a4d",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -216,7 +216,7 @@
 						"quantity": 83,
 						"charges": 57.5,
 						"openOrderId": "d45d4bee-0b0a-4c6a-a1e2-fbba8415d0bf",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -237,7 +237,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "9a6f3bbc-8fff-417f-9372-69580ae21806",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -249,7 +249,7 @@
 						"quantity": 750,
 						"charges": 1138.62,
 						"openOrderId": "6bf75d73-2ef2-428d-9a82-ca630ac4fc0c",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -270,7 +270,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "bcf13888-f232-4356-8c99-a727db74b32a",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -282,7 +282,7 @@
 						"quantity": 2208,
 						"charges": 2518.07,
 						"openOrderId": "3fd25d73-6e28-4338-8240-6973ab907ad8",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -303,7 +303,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "9a6f3bbc-8fff-417f-9372-69580ae21806",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -315,7 +315,7 @@
 						"quantity": 1104,
 						"charges": 1680.21,
 						"openOrderId": "cafa167c-5430-4036-bbbe-c907643470f4",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -327,7 +327,7 @@
 						"quantity": 1104,
 						"charges": 1696.86,
 						"openOrderId": "cafa167c-5430-4036-bbbe-c907643470f4",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -348,7 +348,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "bcf13888-f232-4356-8c99-a727db74b32a",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -360,7 +360,7 @@
 						"quantity": 25,
 						"charges": 40.51,
 						"openOrderId": "4b7e7cca-a78d-41ab-a142-7f49bdf6b06b",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -371,7 +371,7 @@
 						"updatedAt": "2024-04-22T10:35:12.294Z",
 						"content": "",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/X9HxjsmQ/",
 						"instrumentId": "bcf13888-f232-4356-8c99-a727db74b32a",
 						"orderId": "4b7e7cca-a78d-41ab-a142-7f49bdf6b06b",
@@ -398,7 +398,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "ad91fc9d-db5d-46c9-b90c-2da0082ef26e",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -410,7 +410,7 @@
 						"quantity": 255,
 						"charges": 135.47,
 						"openOrderId": "8c53c2c3-6944-446b-bd46-26770f130d65",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -431,7 +431,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "2be5eaaf-70d7-4f03-8a43-d4537a689818",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -443,7 +443,7 @@
 						"quantity": 18,
 						"charges": 101.15,
 						"openOrderId": "213f0f7a-3083-491e-b4f9-1619cb39df1d",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -455,7 +455,7 @@
 						"quantity": 72,
 						"charges": 81.41,
 						"openOrderId": "213f0f7a-3083-491e-b4f9-1619cb39df1d",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -476,7 +476,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "2379d3ea-770c-4549-b832-1a556cd9e809",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -488,7 +488,7 @@
 						"quantity": 225,
 						"charges": 54.4,
 						"openOrderId": "3f7445a2-4d6d-4bcf-93fd-fe1db5c39bee",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -509,7 +509,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "64078379-092a-4c3c-8758-c9958b43a650",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -521,7 +521,7 @@
 						"quantity": 170,
 						"charges": 113.66,
 						"openOrderId": "89741f20-efcc-411b-86e4-8ce04edbc1ff",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -542,7 +542,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "eaa1dd07-3f83-42d7-8251-892a4067b140",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -554,7 +554,7 @@
 						"quantity": 87,
 						"charges": 108.45,
 						"openOrderId": "872951b8-15ee-48e4-811a-554506727730",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -575,7 +575,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "2330f3fb-6153-4d56-be7e-77932a5682a0",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -587,7 +587,7 @@
 						"quantity": 300,
 						"charges": 128.19,
 						"openOrderId": "94ff82c5-ad8e-4351-924e-30a9a173724d",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -608,7 +608,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "412ae5d5-c047-41e7-ab2c-7b0a73dc1b96",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -620,7 +620,7 @@
 						"quantity": 2100,
 						"charges": 171.03,
 						"openOrderId": "6ed661b8-94c1-40d2-be2b-458e15ce1911",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -641,7 +641,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "4243d6a9-32b8-46b6-87e3-c3dd6e88c7e2",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -653,7 +653,7 @@
 						"quantity": 2000,
 						"charges": 80.37,
 						"openOrderId": "3947bebb-23d0-4ac5-a601-6275f75b4dce",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -674,7 +674,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "3330d5cc-a162-4d86-a5d1-e08d171255c1",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -686,7 +686,7 @@
 						"quantity": 300,
 						"charges": 142.76,
 						"openOrderId": "891e12cd-302b-4a99-8da6-238ceba21128",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -707,7 +707,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "1f37b810-bc35-4fa1-8712-4f3dbea5ad0f",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -719,7 +719,7 @@
 						"quantity": 100,
 						"charges": 34.65,
 						"openOrderId": "13153818-f8be-4a9a-9e8e-11dcd56624e1",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -731,7 +731,7 @@
 						"quantity": 100,
 						"charges": 0,
 						"openOrderId": "13153818-f8be-4a9a-9e8e-11dcd56624e1",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -743,7 +743,7 @@
 						"quantity": 100,
 						"charges": 35.69,
 						"openOrderId": "13153818-f8be-4a9a-9e8e-11dcd56624e1",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -755,7 +755,7 @@
 						"quantity": 494,
 						"charges": 113.62,
 						"openOrderId": "13153818-f8be-4a9a-9e8e-11dcd56624e1",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -776,7 +776,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "49a6149f-7b36-42d3-a589-30e6095307de",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -788,7 +788,7 @@
 						"quantity": 89,
 						"charges": 92.87,
 						"openOrderId": "c1b94124-b585-4f4c-aa5c-ba78156b7831",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -809,7 +809,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "57e12661-49e3-4611-bb6a-b988d48aaea2",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -821,7 +821,7 @@
 						"quantity": 40,
 						"charges": 25.28,
 						"openOrderId": "47cf11e2-c6b0-42aa-ad35-91a14c47bc0c",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -833,7 +833,7 @@
 						"quantity": 160,
 						"charges": 53.36,
 						"openOrderId": "47cf11e2-c6b0-42aa-ad35-91a14c47bc0c",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -854,7 +854,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "c21dfaf8-fd0c-44ff-a2e0-e7bb9beaa903",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -866,7 +866,7 @@
 						"quantity": 100,
 						"charges": 55.43,
 						"openOrderId": "4f3e9167-54ec-45fd-a63f-7eaa522d9db2",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -887,7 +887,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "b48e4d34-7869-4ea0-a204-3562ddcb408a",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -899,7 +899,7 @@
 						"quantity": 650,
 						"charges": 174.97,
 						"openOrderId": "5aeb0978-5c2f-4daa-848a-5eebb2b2dc50",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -910,7 +910,7 @@
 						"updatedAt": "2024-06-01T08:44:40.204Z",
 						"content": "",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/jSdeiT1b/",
 						"instrumentId": "b48e4d34-7869-4ea0-a204-3562ddcb408a",
 						"orderId": "5aeb0978-5c2f-4daa-848a-5eebb2b2dc50",
@@ -937,7 +937,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "2bd3e437-2e43-43ae-be65-b70851a30fcf",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -949,7 +949,7 @@
 						"quantity": 150,
 						"charges": 86.86,
 						"openOrderId": "435fab19-1c65-4ed1-848b-2df2cf308a32",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -970,7 +970,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "87392321-e7a0-4eee-99a5-a364a2ae99c6",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -982,7 +982,7 @@
 						"quantity": 276,
 						"charges": 119.87,
 						"openOrderId": "929a648b-e4f4-4ad1-9d57-e0451ed5b549",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1003,7 +1003,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "a0b9811e-19c2-477e-9b20-4ebe484d503f",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1015,7 +1015,7 @@
 						"quantity": 20,
 						"charges": 64.78,
 						"openOrderId": "e30aae1a-cb26-4834-9b0f-2afe0c363316",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1036,7 +1036,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "cbc314ad-ad77-4a78-879f-17f98ae6c687",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1048,7 +1048,7 @@
 						"quantity": 1700,
 						"charges": 136.51,
 						"openOrderId": "8ef09836-2dc7-46d7-96a5-78987df501b1",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1069,7 +1069,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "07e9faeb-469d-4e30-bc7e-6b5a6c55d87f",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1081,7 +1081,7 @@
 						"quantity": 3,
 						"charges": 18.02,
 						"openOrderId": "3a9095ef-8924-4996-a9bd-a02544f900b3",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -1093,7 +1093,7 @@
 						"quantity": 11,
 						"charges": 0,
 						"openOrderId": "3a9095ef-8924-4996-a9bd-a02544f900b3",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": [
 							{
 								"id": "736a95c7-19b5-4767-87d0-804b317f4434",
@@ -1101,7 +1101,7 @@
 								"updatedAt": "2024-12-01T04:35:42.363Z",
 								"content": "sdaf",
 								"date": null,
-								"userId": "clsmsd6c9000jmr54nihnxz0v",
+								"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 								"chartUrl": "https://www.tradingview.com/x/D8Eo7dad/",
 								"instrumentId": "07e9faeb-469d-4e30-bc7e-6b5a6c55d87f",
 								"orderId": "3a9095ef-8924-4996-a9bd-a02544f900b3",
@@ -1117,7 +1117,7 @@
 								"updatedAt": "2024-12-01T04:35:47.226Z",
 								"content": "fad",
 								"date": null,
-								"userId": "clsmsd6c9000jmr54nihnxz0v",
+								"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 								"chartUrl": "https://www.tradingview.com/x/D8Eo7dad/",
 								"instrumentId": "07e9faeb-469d-4e30-bc7e-6b5a6c55d87f",
 								"orderId": "3a9095ef-8924-4996-a9bd-a02544f900b3",
@@ -1137,7 +1137,7 @@
 						"updatedAt": "2024-12-01T04:35:42.363Z",
 						"content": "sdaf",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/D8Eo7dad/",
 						"instrumentId": "07e9faeb-469d-4e30-bc7e-6b5a6c55d87f",
 						"orderId": "3a9095ef-8924-4996-a9bd-a02544f900b3",
@@ -1153,7 +1153,7 @@
 						"updatedAt": "2024-12-01T04:35:47.226Z",
 						"content": "fad",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/D8Eo7dad/",
 						"instrumentId": "07e9faeb-469d-4e30-bc7e-6b5a6c55d87f",
 						"orderId": "3a9095ef-8924-4996-a9bd-a02544f900b3",
@@ -1180,7 +1180,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "a2a5097b-4929-4153-8124-c4770939d2bc",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1192,7 +1192,7 @@
 						"quantity": 60,
 						"charges": 20.08,
 						"openOrderId": "db3ebb8c-c266-4875-9492-a57c95eec013",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1213,7 +1213,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "7114c22e-4fa7-4bab-8f09-5e6e8d6e9fff",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [],
 				"notes": []
@@ -1233,7 +1233,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "e261650f-7e15-441c-9f79-daef4aa42cf9",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1245,7 +1245,7 @@
 						"quantity": 10,
 						"charges": 18.02,
 						"openOrderId": "9d84a00f-c18d-4b68-9461-a7cac17ee406",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -1257,7 +1257,7 @@
 						"quantity": 39,
 						"charges": 24.26,
 						"openOrderId": "9d84a00f-c18d-4b68-9461-a7cac17ee406",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1268,7 +1268,7 @@
 						"updatedAt": "2024-12-01T04:11:36.472Z",
 						"content": "ta",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/D8Eo7dad/",
 						"instrumentId": "e261650f-7e15-441c-9f79-daef4aa42cf9",
 						"orderId": "9d84a00f-c18d-4b68-9461-a7cac17ee406",
@@ -1295,7 +1295,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "f320bc91-88e6-450f-a1ef-26019aa43f4e",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1307,7 +1307,7 @@
 						"quantity": 30,
 						"charges": 19.05,
 						"openOrderId": "5b2a4b59-c1fa-4f67-a8b3-ed0fdff4d3fa",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1328,7 +1328,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "2531664c-6dc3-40fc-ac14-621909a367ca",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1340,7 +1340,7 @@
 						"quantity": 10,
 						"charges": 16.97,
 						"openOrderId": "38635ed2-afae-4a91-bc32-8cdf74a61c87",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					},
 					{
@@ -1352,7 +1352,7 @@
 						"quantity": 10,
 						"charges": 0,
 						"openOrderId": "38635ed2-afae-4a91-bc32-8cdf74a61c87",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1373,7 +1373,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "2edcf821-6c95-465c-8925-d612a9419c16",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1385,7 +1385,7 @@
 						"quantity": 20,
 						"charges": 46.06,
 						"openOrderId": "a8200d5e-063f-41cc-be3b-1d37c01eb400",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": [
 							{
 								"id": "8b84d41d-874e-4ab0-a61e-a7afedc06495",
@@ -1393,7 +1393,7 @@
 								"updatedAt": "2024-12-01T04:09:26.472Z",
 								"content": "adsf",
 								"date": null,
-								"userId": "clsmsd6c9000jmr54nihnxz0v",
+								"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 								"chartUrl": "https://www.tradingview.com/x/H7MWEaUU/",
 								"instrumentId": "2edcf821-6c95-465c-8925-d612a9419c16",
 								"orderId": "a8200d5e-063f-41cc-be3b-1d37c01eb400",
@@ -1409,7 +1409,7 @@
 								"updatedAt": "2024-12-10T12:40:00.074Z",
 								"content": "s",
 								"date": null,
-								"userId": "clsmsd6c9000jmr54nihnxz0v",
+								"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 								"chartUrl": "https://www.tradingview.com/x/32ZZB4SP/",
 								"instrumentId": "2edcf821-6c95-465c-8925-d612a9419c16",
 								"orderId": "a8200d5e-063f-41cc-be3b-1d37c01eb400",
@@ -1430,7 +1430,7 @@
 						"quantity": 64,
 						"charges": 0,
 						"openOrderId": "a8200d5e-063f-41cc-be3b-1d37c01eb400",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1441,7 +1441,7 @@
 						"updatedAt": "2024-08-28T03:10:11.670Z",
 						"content": "",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/KRgM3KuB/",
 						"instrumentId": "2edcf821-6c95-465c-8925-d612a9419c16",
 						"orderId": "a8200d5e-063f-41cc-be3b-1d37c01eb400",
@@ -1457,7 +1457,7 @@
 						"updatedAt": "2024-12-01T04:09:26.472Z",
 						"content": "adsf",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/H7MWEaUU/",
 						"instrumentId": "2edcf821-6c95-465c-8925-d612a9419c16",
 						"orderId": "a8200d5e-063f-41cc-be3b-1d37c01eb400",
@@ -1473,7 +1473,7 @@
 						"updatedAt": "2024-12-10T12:40:00.074Z",
 						"content": "s",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/32ZZB4SP/",
 						"instrumentId": "2edcf821-6c95-465c-8925-d612a9419c16",
 						"orderId": "a8200d5e-063f-41cc-be3b-1d37c01eb400",
@@ -1500,7 +1500,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "2531664c-6dc3-40fc-ac14-621909a367ca",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1512,7 +1512,7 @@
 						"quantity": 1,
 						"charges": 15.94,
 						"openOrderId": "d9642bfd-e303-4b8d-b7e3-2867528e93c0",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1523,7 +1523,7 @@
 						"updatedAt": "2025-02-09T04:16:17.143Z",
 						"content": "adf",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/jSdeiT1b/",
 						"instrumentId": "2531664c-6dc3-40fc-ac14-621909a367ca",
 						"orderId": "d9642bfd-e303-4b8d-b7e3-2867528e93c0",
@@ -1550,7 +1550,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "e6215d70-0a4f-477d-8e65-bda98b84c860",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [
 					{
@@ -1562,7 +1562,7 @@
 						"quantity": 4,
 						"charges": 0,
 						"openOrderId": "e3b7e1a6-d403-45cc-ada7-896456615e19",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": [
 							{
 								"id": "fe49017a-6755-49cc-890d-773021cd67d3",
@@ -1570,7 +1570,7 @@
 								"updatedAt": "2025-02-11T14:09:07.713Z",
 								"content": "",
 								"date": null,
-								"userId": "clsmsd6c9000jmr54nihnxz0v",
+								"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 								"chartUrl": "https://www.tradingview.com/x/jSdeiT1b/",
 								"instrumentId": "e6215d70-0a4f-477d-8e65-bda98b84c860",
 								"orderId": "e3b7e1a6-d403-45cc-ada7-896456615e19",
@@ -1591,7 +1591,7 @@
 						"quantity": 4,
 						"charges": 16.95,
 						"openOrderId": "e3b7e1a6-d403-45cc-ada7-896456615e19",
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"notes": []
 					}
 				],
@@ -1602,7 +1602,7 @@
 						"updatedAt": "2025-02-11T14:08:26.824Z",
 						"content": "Entered the best setup",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/32ZZB4SP/",
 						"instrumentId": "e6215d70-0a4f-477d-8e65-bda98b84c860",
 						"orderId": "e3b7e1a6-d403-45cc-ada7-896456615e19",
@@ -1618,7 +1618,7 @@
 						"updatedAt": "2025-02-11T14:09:07.713Z",
 						"content": "",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": "https://www.tradingview.com/x/jSdeiT1b/",
 						"instrumentId": "e6215d70-0a4f-477d-8e65-bda98b84c860",
 						"orderId": "e3b7e1a6-d403-45cc-ada7-896456615e19",
@@ -1645,7 +1645,7 @@
 				"capital": null,
 				"type": "BUY",
 				"instrumentId": "0c62cb2f-ea6c-480f-b2b1-8db08b62932f",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"closeOrders": [],
 				"notes": []
@@ -1659,7 +1659,7 @@
 				"date": "2024-03-14T00:00:00.000Z",
 				"amount": 20000,
 				"type": "DEPOSIT",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"notes": [
 					{
@@ -1668,7 +1668,7 @@
 						"updatedAt": "2024-03-22T12:09:58.172Z",
 						"content": "Initial Deposit to test the setup",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": null,
 						"instrumentId": null,
 						"orderId": null,
@@ -1684,7 +1684,7 @@
 						"updatedAt": "2025-02-08T12:46:39.729Z",
 						"content": "dfadf",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": null,
 						"instrumentId": null,
 						"orderId": null,
@@ -1703,7 +1703,7 @@
 				"date": "2024-04-10T00:00:00.000Z",
 				"amount": 800000,
 				"type": "DEPOSIT",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"notes": []
 			},
@@ -1714,7 +1714,7 @@
 				"date": "2024-04-10T00:00:00.000Z",
 				"amount": 200000,
 				"type": "DEPOSIT",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"notes": []
 			},
@@ -1725,7 +1725,7 @@
 				"date": "2024-08-16T00:00:00.000Z",
 				"amount": -790172,
 				"type": "WITHDRAW",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"notes": []
 			}
@@ -1738,7 +1738,7 @@
 				"date": "2024-04-13T00:00:00.000Z",
 				"amount": 100,
 				"type": "INCOME",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"notes": [
 					{
@@ -1747,7 +1747,7 @@
 						"updatedAt": "2024-04-13T09:45:20.294Z",
 						"content": "test",
 						"date": null,
-						"userId": "clsmsd6c9000jmr54nihnxz0v",
+						"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 						"chartUrl": null,
 						"instrumentId": null,
 						"orderId": null,
@@ -1766,7 +1766,7 @@
 				"date": "2024-04-13T00:00:00.000Z",
 				"amount": -100,
 				"type": "EXPENSE",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
 				"notes": []
 			}
@@ -1778,7 +1778,7 @@
 				"updatedAt": "2024-03-22T12:11:23.698Z",
 				"content": "Journal note",
 				"date": null,
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"chartUrl": "https://www.tradingview.com/x/H7MWEaUU/",
 				"instrumentId": null,
 				"orderId": null,
@@ -1794,7 +1794,7 @@
 				"updatedAt": "2024-04-11T08:43:41.350Z",
 				"content": "Journal Note",
 				"date": null,
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"chartUrl": null,
 				"instrumentId": null,
 				"orderId": null,
@@ -1810,7 +1810,7 @@
 				"updatedAt": "2025-02-07T03:01:25.415Z",
 				"content": "[{\"type\":\"p\",\"children\":[{\"text\":\"journal note\"}]}]",
 				"date": "2025-02-07T00:00:00.000Z",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"chartUrl": null,
 				"instrumentId": null,
 				"orderId": null,
@@ -1826,7 +1826,7 @@
 				"updatedAt": "2025-02-07T14:39:01.403Z",
 				"content": "[{\"type\":\"p\",\"children\":[{\"text\":\"https://www.tradingview.com/x/32ZZB4SP/\"}]},{\"type\":\"img\",\"url\":\"https://www.tradingview.com/x/32ZZB4SP/\",\"children\":[{\"text\":\"\"}]},{\"children\":[{\"text\":\"\"}],\"type\":\"img\",\"url\":\"https://www.tradingview.com/x/32ZZB4SP/\"},{\"children\":[{\"text\":\"\"}],\"type\":\"p\"},{\"type\":\"p\",\"children\":[{\"text\":\"\"}]}]",
 				"date": "2025-02-07T00:00:00.000Z",
-				"userId": "clsmsd6c9000jmr54nihnxz0v",
+				"userId": "8D9B81B5-A028-4643-8CEF-645495AFAD55",
 				"chartUrl": null,
 				"instrumentId": null,
 				"orderId": null,

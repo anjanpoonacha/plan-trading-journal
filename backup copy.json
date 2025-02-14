@@ -1,0 +1,15 @@
+{
+	"journalId": "cd03b578-8769-47db-a51d-be9be4584bac",
+	"data": {
+		"id": "cd03b578-8769-47db-a51d-be9be4584bac",
+		"createdAt": "2024-02-15T05:34:11.292Z",
+		"updatedAt": "2024-04-21T08:32:44.162Z",
+		"userId": "clsmsd6c9000jmr54nihnxz0v",
+		"name": "India",
+		"countryId": "india",
+		"orders": [],
+		"funds": [],
+		"adjustments": [],
+		"notes": []
+	}
+}
