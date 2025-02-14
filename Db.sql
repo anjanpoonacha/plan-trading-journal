@@ -8,7 +8,7 @@ SELECT
     (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) / te.quantity * 100 AS open_pct,
     te.entry_price,
     te.stop_loss AS sl,
-    (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
     (te.quantity * te.entry_price) AS exposure,
     (te.quantity * te.entry_price) / jm.account_value * 100 AS exposure_pct,
     jm.total_exposure,
@@ -67,11 +67,11 @@ SELECT
     te.quantity,
     te.entry_price AS entry,
     te.stop_loss AS sl,
-    (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
     (te.quantity * te.entry_price) AS position_size,
     (te.quantity * te.entry_price) / (hav.trade_date_capital + hav.prior_profits) * 100 AS position_size_pct,
-    te.quantity * (te.entry_price - te.stop_loss) AS rpt,
-    (te.quantity * (te.entry_price - te.stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
+    te.quantity * (te.entry_price - te.current_stop_loss) AS rpt,
+    (te.quantity * (te.entry_price - te.current_stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
     COALESCE(tea.total_exited / te.quantity * 100, 0) AS exit_pct,
     tea.avg_exit_price,
     tea.latest_exit_date,
@@ -83,8 +83,8 @@ SELECT
     ((tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges) / (hav.trade_date_capital + hav.prior_profits) * 100 AS account_gain_pct,
     EXTRACT(DAY FROM NOW() - te.entry_date) AS days,
     CASE
-        WHEN (te.entry_price - te.stop_loss) <> 0 
-        THEN (tea.avg_exit_price - te.entry_price) / (te.entry_price - te.stop_loss)
+        WHEN (te.entry_price - te.current_stop_loss) <> 0 
+        THEN (tea.avg_exit_price - te.entry_price) / (te.entry_price - te.current_stop_loss)
         ELSE NULL
     END AS rr,
     tea.total_charges,
@@ -119,7 +119,7 @@ SELECT
     (te.quantity * te.entry_price) AS position_size,
     (te.quantity * te.entry_price) / jm.account_value * 100 AS position_size_pct,
     te.stop_loss,
-    (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
     te.risk AS rpt,
     te.risk / jm.account_value * 100 AS rpt_pct,
     jsonb_agg(jsonb_build_object(
@@ -131,8 +131,8 @@ SELECT
         'charges', te2.charges,
         'profit', (te2.exit_price - te.entry_price) * te2.quantity_exited,
         'r_multiple', CASE te.direction
-            WHEN 'LONG' THEN (te2.exit_price - te.entry_price) / (te.entry_price - te.stop_loss)
-            ELSE (te.entry_price - te2.exit_price) / (te.entry_price - te.stop_loss)
+            WHEN 'LONG' THEN (te2.exit_price - te.entry_price) / (te.entry_price - te.current_stop_loss)
+            ELSE (te.entry_price - te2.exit_price) / (te.entry_price - te.current_stop_loss)
         END
     )) AS exit_records
 FROM trade_entries te
@@ -186,3 +186,66 @@ SELECT
     AVG(t.account_gain_pct) AS avg_account_gain_pct
 FROM trade_data td
 JOIN journal_metrics jm ON true;
+
+-- Add generated column to trade_entries (Reference: AllDDL.sql lines 51-54)
+ALTER TABLE trade_entries ADD COLUMN current_stop_loss NUMERIC(18, 8) 
+    GENERATED ALWAYS AS (COALESCE(current_stop_loss_override, stop_loss)) STORED;
+ALTER TABLE trade_entries ADD COLUMN current_stop_loss_override NUMERIC(18, 8);
+
+-- Corrected RoSV Calculation (metricsExplained/3.TradeHistory.md lines 87-96)
+WITH starting_account_adjusted AS (
+    SELECT 
+        jm.journal_id,
+        jm.starting_account + COALESCE(SUM(f.amount) FILTER (WHERE f.type = 'DEPOSIT' 
+            AND f.transaction_date >= DATE_TRUNC('year', CURRENT_DATE)), 0) AS starting_account_adj
+    FROM journal_metrics jm
+    LEFT JOIN funds f ON jm.journal_id = f.journal_id
+    GROUP BY jm.journal_id, jm.starting_account
+)
+SELECT
+    te.id,
+    i.symbol,
+    te.entry_date AS date,
+    te.direction AS type,
+    te.quantity,
+    te.entry_price AS entry,
+    te.stop_loss AS sl,
+    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.quantity * te.entry_price) AS position_size,
+    (te.quantity * te.entry_price) / (hav.trade_date_capital + hav.prior_profits) * 100 AS position_size_pct,
+    te.quantity * (te.entry_price - te.current_stop_loss) AS rpt,
+    (te.quantity * (te.entry_price - te.current_stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
+    COALESCE(tea.total_exited / te.quantity * 100, 0) AS exit_pct,
+    tea.avg_exit_price,
+    tea.latest_exit_date,
+    (tea.avg_exit_price - te.entry_price) / te.entry_price * 100 AS gain_pct,
+    hav.trade_date_capital AS capital_deployed,
+    (tea.avg_exit_price - te.entry_price) * te.quantity / hav.trade_date_capital * 100 AS rocd,
+    jm.starting_account,
+    (tea.avg_exit_price - te.entry_price) * te.quantity / sa.starting_account_adj * 100 AS rosav,
+    ((tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges) / (hav.trade_date_capital + hav.prior_profits) * 100 AS account_gain_pct,
+    EXTRACT(DAY FROM NOW() - te.entry_date) AS days,
+    CASE
+        WHEN (te.entry_price - te.current_stop_loss) <> 0 
+        THEN (tea.avg_exit_price - te.entry_price) / (te.entry_price - te.current_stop_loss)
+        ELSE NULL
+    END AS rr,
+    tea.total_charges,
+    (tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges AS net_profit
+FROM trade_entries te
+JOIN instruments i ON te.instrument_id = i.id
+LEFT JOIN (
+    SELECT 
+        entry_id,
+        journal_id,
+        SUM(quantity_exited) AS total_exited,
+        MAX(exit_date) AS latest_exit_date,
+        AVG(exit_price) AS avg_exit_price,
+        SUM(charges) AS total_charges
+    FROM trade_exits
+    GROUP BY entry_id, journal_id
+) tea ON te.id = tea.entry_id AND te.journal_id = tea.journal_id
+JOIN historical_account_value hav ON te.id = hav.trade_id AND te.journal_id = hav.journal_id
+JOIN journal_metrics jm ON te.journal_id = jm.journal_id
+JOIN starting_account_adjusted sa ON te.journal_id = sa.journal_id
+GROUP BY te.id, i.symbol, jm.capital_deployed, jm.account_value, jm.starting_account;
