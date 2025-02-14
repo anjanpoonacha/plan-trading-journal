@@ -58,7 +58,6 @@ CREATE TABLE trade_exits (
     quantity_exited NUMERIC(18, 8) NOT NULL CHECK (quantity_exited > 0),
     charges NUMERIC(18, 8) NOT NULL DEFAULT 0,
     entry_price NUMERIC(18, 8) NOT NULL,
-    CHECK (exit_date > (SELECT entry_date FROM trade_entries WHERE id = entry_id)),
     
     -- Modified calculated field to use local column
     gain_pct NUMERIC(18, 8) GENERATED ALWAYS AS (
@@ -72,16 +71,17 @@ CREATE TABLE funds (
     user_id INT NOT NULL REFERENCES users(id),
     type VARCHAR(10) CHECK (type IN ('DEPOSIT', 'WITHDRAW')),
     amount NUMERIC(18, 8) NOT NULL CHECK (amount > 0),
-    transaction_date TIMESTAMPTZ NOT NULL,
-    CHECK (
-        (type = 'WITHDRAW' AND amount <= (
-            SELECT COALESCE(SUM(amount) FILTER (WHERE type = 'DEPOSIT'), 0) 
-            - COALESCE(SUM(amount) FILTER (WHERE type = 'WITHDRAW'), 0) 
-            FROM funds f 
-            WHERE f.user_id = funds.user_id 
-            AND f.transaction_date <= funds.transaction_date
-        ))
-    )
+    transaction_date TIMESTAMPTZ NOT NULL
+	-- ,
+    -- CHECK (
+    --     (type = 'WITHDRAW' AND amount <= (
+    --         SELECT COALESCE(SUM(amount) FILTER (WHERE type = 'DEPOSIT'), 0) 
+    --         - COALESCE(SUM(amount) FILTER (WHERE type = 'WITHDRAW'), 0) 
+    --         FROM funds f 
+    --         WHERE f.user_id = funds.user_id 
+    --         AND f.transaction_date <= funds.transaction_date
+    --     ))
+    -- )
 );
 
 -- Materialized Views for Metrics (All metrics from metricsExplained/ documents)
@@ -190,6 +190,26 @@ CREATE TRIGGER refresh_metrics_trade_exits
 AFTER INSERT OR UPDATE OF exit_price, quantity_exited, charges OR DELETE ON trade_exits
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)
 EXECUTE FUNCTION refresh_metrics();
+
+-- -- Add validation trigger for exit_date
+-- CREATE OR REPLACE FUNCTION validate_exit_date() RETURNS TRIGGER AS $$
+-- DECLARE
+--     entry_dt TIMESTAMPTZ;
+-- BEGIN
+--     SELECT entry_date INTO entry_dt 
+--     FROM trade_entries 
+--     WHERE id = NEW.entry_id;
+    
+--     IF NEW.exit_date <= entry_dt THEN
+--         RAISE EXCEPTION 'Exit date must be after trade entry date (%)', entry_dt;
+--     END IF;
+--     RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- CREATE TRIGGER validate_exit_date_trigger
+-- BEFORE INSERT OR UPDATE ON trade_exits
+-- FOR EACH ROW EXECUTE FUNCTION validate_exit_date();
 
 -- Daily at 2AM
 -- 0 2 * * * psql -c "REFRESH MATERIALIZED VIEW CONCURRENTLY summary_view_mv;"
