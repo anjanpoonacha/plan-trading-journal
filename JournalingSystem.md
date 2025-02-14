@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
 box Trades Journaling System
 participant AdminUI
@@ -39,3 +40,5 @@ UserUI->>TradeService: View Analytics (Dashboard, Summary, Positions, All Trades
 TradeService->>JournalDB: Get Current Metrics
 JournalDB-->>TradeService: Aggregated Data (Stored on Write)
 TradeService-->>UserUI: Display Dashboard
+
+```
