@@ -84,9 +84,10 @@ CREATE TABLE funds (
     -- )
 );
 
--- Create user_metrics first
+-- Create independent user metrics first
 CREATE MATERIALIZED VIEW user_metrics AS
-WITH fund_summary AS (
+WITH 
+fund_summary AS (
     SELECT 
         user_id,
         SUM(amount) FILTER (WHERE type = 'DEPOSIT') AS total_deposits,
@@ -106,25 +107,35 @@ realized_profits AS (
     FROM trade_exits te2
     JOIN trade_entries te ON te.id = te2.entry_id
     GROUP BY te.user_id
+),
+position_calculations AS (
+    SELECT
+        te.user_id,
+        SUM(
+            (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) * te.entry_price
+        ) FILTER (WHERE te.quantity - COALESCE(SUM(te2.quantity_exited), 0) > 0) AS total_exposure,
+        SUM(
+            CASE te.direction
+                WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0))
+                ELSE (te.entry_price - te.current_stop_loss) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0))
+            END
+        ) FILTER (WHERE te.quantity - COALESCE(SUM(te2.quantity_exited), 0) > 0) AS total_open_risk
+    FROM trade_entries te
+    LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
+    GROUP BY te.user_id
 )
 SELECT
     u.id AS user_id,
-    -- Capital Metrics (Reference: metricsExplained/DashboardMetrics.md lines 5-23)
     COALESCE(fs.total_deposits, 0) - COALESCE(fs.total_withdrawals, 0) AS capital_deployed,
-    COALESCE(fs.total_deposits, 0) - COALESCE(fs.total_withdrawals, 0) 
-        + COALESCE(rp.total_realized_profit, 0) AS account_value,
-    -- Risk Metrics (Reference: metricsExplained/2.PositionMetrics.md lines 47-59)
-    COALESCE(SUM(pm.exposure), 0) AS total_exposure,
-    COALESCE(SUM(pm.exposure_pct), 0) AS total_exposure_pct,
-    COALESCE(SUM(pm.open_risk), 0) AS total_open_risk,
-    COALESCE(SUM(pm.open_risk_pct), 0) AS total_open_risk_pct
+    COALESCE(fs.total_deposits, 0) - COALESCE(fs.total_withdrawals, 0) + COALESCE(rp.total_realized_profit, 0) AS account_value,
+    COALESCE(pc.total_exposure, 0) AS total_exposure,
+    COALESCE(pc.total_open_risk, 0) AS total_open_risk
 FROM users u
 LEFT JOIN fund_summary fs ON u.id = fs.user_id
 LEFT JOIN realized_profits rp ON u.id = rp.user_id
-LEFT JOIN position_metrics pm ON u.id = pm.user_id
-GROUP BY u.id, fs.total_deposits, fs.total_withdrawals, rp.total_realized_profit;
+LEFT JOIN position_calculations pc ON u.id = pc.user_id;
 
--- Then create position_metrics which depends on user_metrics
+-- Then create position_metrics that depends on user_metrics
 CREATE MATERIALIZED VIEW position_metrics AS
 WITH open_trades AS (
     SELECT 
@@ -143,7 +154,8 @@ SELECT
     ot.entry_price,
     ot.current_stop_loss,
     ot.direction,
-    -- Position Metrics (Reference: metricsExplained/2.PositionMetrics.md lines 5-59)
+    ot.open_quantity * ot.entry_price AS exposure,
+    (ot.open_quantity * ot.entry_price) / um.account_value AS exposure_pct,
     CASE ot.direction
         WHEN 'LONG' THEN (ot.current_stop_loss - ot.entry_price) * ot.open_quantity
         ELSE (ot.entry_price - ot.current_stop_loss) * ot.open_quantity
