@@ -63,7 +63,7 @@ WITH exit_aggregates AS (
     entry_id,
     SUM(quantity_exited) AS total_exited,
     MAX(exit_date) AS latest_exit_date,
-    ARRAY_AGG(
+    JSONB_AGG(
       jsonb_build_object(
         'exit_date', exit_date,
         'exit_price', exit_price,
@@ -149,29 +149,26 @@ JOIN trade_account_values tav ON te.id = tav.id
 LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id;
 
 CREATE MATERIALIZED VIEW trade_detail_metrics AS
-SELECT
+SELECT 
   thm.*,
-  COALESCE(te2.exit_price, thm.entry_price) AS specific_exit_price,
-  COALESCE(te2.charges, 0) AS exit_charges,
-  (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) / thm.entry_price * 100 AS gain_pct,
-  (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) * thm.quantity AS gross_profit,
-  (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) / 
-  NULLIF(ABS(thm.entry_price - thm.stop_loss), 0) AS r_multiple
+  (exit_record->>'exit_date')::timestamptz AS exit_date,
+  (exit_record->>'exit_price')::numeric(18,8) AS specific_exit_price,
+  (exit_record->>'quantity_exited')::numeric(18,8) AS exited_quantity,
+  (exit_record->>'charges')::numeric(18,8) AS exit_charges
 FROM trade_history_metrics thm
-LEFT JOIN trade_exits te2 ON thm.id = te2.entry_id;
+LEFT JOIN LATERAL JSONB_ARRAY_ELEMENTS(thm.exit_records) AS exit_record ON true;
 
 CREATE MATERIALIZED VIEW summary_metrics AS
 SELECT
   DATE_TRUNC('month', te.entry_date) AS period,
   COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date >= DATE_TRUNC('month', CURRENT_DATE)) AS new_trades,
-  COUNT(*) FILTER (WHERE te2.quantity_exited = te.quantity) AS fully_closed,
-  COUNT(*) FILTER (WHERE te2.quantity_exited < te.quantity) AS partially_closed,
-  AVG(tdm.gain_pct) FILTER (WHERE te2.quantity_exited = te.quantity) AS avg_gain,
-  AVG(tdm.gain_pct) FILTER (WHERE te2.quantity_exited = te.quantity AND tdm.gain_pct < 0) AS avg_loss,
-  SUM(tdm.gross_profit) AS profit,
-  SUM(tdm.charges) AS charges,
-  SUM(tdm.gross_profit - tdm.charges) AS net_profit
+  COUNT(*) FILTER (WHERE thm.exit_pct = 100) AS fully_closed,
+  COUNT(*) FILTER (WHERE thm.exit_pct < 100) AS partially_closed,
+  AVG(thm.gain_pct) FILTER (WHERE thm.exit_pct = 100) AS avg_gain,
+  AVG(thm.gain_pct) FILTER (WHERE thm.exit_pct = 100 AND thm.gain_pct < 0) AS avg_loss,
+  SUM(thm.net_profit) AS profit,
+  SUM(thm.charges) AS charges,
+  SUM(thm.net_profit) AS net_profit
 FROM trade_entries te
-JOIN trade_detail_metrics tdm ON te.id = tdm.id
-LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
+JOIN trade_history_metrics thm ON te.id = thm.id
 GROUP BY period;
