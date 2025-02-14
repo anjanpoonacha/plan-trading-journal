@@ -3,6 +3,7 @@ drop materialized view if exists position_metrics_enhanced cascade;
 drop materialized view if exists trade_history_metrics cascade;
 drop materialized view if exists trade_detail_metrics cascade;
 drop materialized view if exists summary_metrics cascade;
+drop materialized view if exists daily_metrics cascade;
 
 CREATE MATERIALIZED VIEW dashboard_metrics AS
 SELECT
@@ -173,17 +174,91 @@ JOIN instruments i ON te.instrument_id = i.id
 JOIN trade_account_values tav ON te.id = tav.id
 LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id;
 
+CREATE MATERIALIZED VIEW daily_metrics AS
+WITH date_series AS (
+  SELECT DISTINCT activity_date::date AS metric_date
+  FROM (
+    SELECT entry_date AS activity_date FROM trade_entries
+    UNION ALL
+    SELECT exit_date FROM trade_exits
+    UNION ALL
+    SELECT transaction_date FROM funds
+  ) all_activities
+),
+trade_metrics AS (
+  SELECT
+    exit_date::date AS metric_date,
+    SUM(
+      CASE te.direction
+        WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
+        ELSE (te.entry_price - exit_price) * quantity_exited
+      END - ex.charges - te.charges
+    ) AS gross_profit,
+    SUM(ex.charges + te.charges) AS total_charges,
+    COUNT(DISTINCT te.id) FILTER (WHERE exit_date IS NOT NULL) AS closed_orders,
+    COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = exit_date::date) AS new_orders
+  FROM trade_exits ex
+  JOIN trade_entries te ON ex.entry_id = te.id
+  GROUP BY 1
+),
+fund_flow AS (
+  SELECT
+    transaction_date::date AS metric_date,
+    SUM(amount) FILTER (WHERE type = 'DEPOSIT') AS deposits,
+    SUM(amount) FILTER (WHERE type = 'WITHDRAW') AS withdrawals
+  FROM funds
+  GROUP BY 1
+),
+entry_dates AS (
+  SELECT 
+    entry_date::date AS metric_date,
+    COUNT(*) AS new_orders
+  FROM trade_entries
+  GROUP BY 1
+)
+SELECT
+  ds.metric_date,
+  COALESCE(tm.gross_profit, 0) AS gross_profit,
+  COALESCE(tm.total_charges, 0) AS total_charges,
+  COALESCE(tm.gross_profit, 0) - COALESCE(tm.total_charges, 0) AS net_profit,
+  COALESCE(ed.new_orders, 0) AS new_orders,
+  COALESCE(tm.closed_orders, 0) AS closed_orders,
+  COALESCE(ff.deposits, 0) AS deposits,
+  COALESCE(ff.withdrawals, 0) AS withdrawals,
+  SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (ORDER BY ds.metric_date) AS cumulative_funds,
+  SUM(COALESCE(tm.gross_profit - tm.total_charges, 0)) OVER (ORDER BY ds.metric_date) AS cumulative_profit,
+  SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (ORDER BY ds.metric_date) +
+  SUM(COALESCE(tm.gross_profit - tm.total_charges, 0)) OVER (ORDER BY ds.metric_date) AS account_value
+FROM date_series ds
+LEFT JOIN trade_metrics tm ON ds.metric_date = tm.metric_date
+LEFT JOIN fund_flow ff ON ds.metric_date = ff.metric_date
+LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date;
+
 CREATE MATERIALIZED VIEW summary_metrics AS
 SELECT
-  DATE_TRUNC('month', te.entry_date) AS period,
-  COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date >= DATE_TRUNC('month', CURRENT_DATE)) AS new_trades,
-  COUNT(*) FILTER (WHERE thm.exit_pct = 100) AS fully_closed,
-  COUNT(*) FILTER (WHERE thm.exit_pct < 100) AS partially_closed,
-  AVG(thm.gain_pct) FILTER (WHERE thm.exit_pct = 100) AS avg_gain,
-  AVG(thm.gain_pct) FILTER (WHERE thm.exit_pct = 100 AND thm.gain_pct < 0) AS avg_loss,
-  SUM(thm.net_profit) AS profit,
-  SUM(thm.charges) AS charges,
-  SUM(thm.net_profit) AS net_profit
-FROM trade_entries te
-JOIN trade_history_metrics thm ON te.id = thm.id
-GROUP BY period;
+  date_trunc('month', metric_date)::date AS period_start,
+  'month' AS period_type,
+  SUM(gross_profit) AS gross_profit,
+  SUM(total_charges) AS total_charges,
+  SUM(net_profit) AS net_profit,
+  SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
+  MAX(account_value) AS ending_account_value,
+  MIN(account_value - net_profit) AS starting_account_value,
+  (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
+FROM daily_metrics
+GROUP BY 1
+
+UNION ALL
+
+SELECT
+  date_trunc('year', metric_date)::date AS period_start,
+  'year' AS period_type,
+  SUM(gross_profit) AS gross_profit,
+  SUM(total_charges) AS total_charges,
+  SUM(net_profit) AS net_profit,
+  SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
+  MAX(account_value) AS ending_account_value,
+  MIN(account_value - net_profit) AS starting_account_value,
+  (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
+FROM daily_metrics
+GROUP BY 1;
