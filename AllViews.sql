@@ -189,47 +189,51 @@ WITH date_series AS (
 ),
 trade_metrics AS (
   SELECT
-    exit_date::date AS metric_date,
+    ex.exit_date::date AS metric_date,
+    ex.journal_id,
     SUM(
       CASE te.direction
-        WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
-        ELSE (te.entry_price - exit_price) * quantity_exited
+        WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
+        ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
       END - ex.charges - te.charges
     ) AS gross_profit,
     SUM(ex.charges + te.charges) AS total_charges,
-    COUNT(DISTINCT te.id) FILTER (WHERE exit_date IS NOT NULL) AS closed_orders,
-    COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = exit_date::date) AS new_orders,
+    COUNT(DISTINCT te.id) FILTER (WHERE ex.exit_date IS NOT NULL) AS closed_orders,
+    COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = ex.exit_date::date) AS new_orders,
     SUM(EXTRACT(DAY FROM ex.exit_date - te.entry_date)) AS total_holding_days,
-    COUNT(DISTINCT te.id) FILTER (WHERE (exit_price - te.entry_price) * 
+    COUNT(DISTINCT te.id) FILTER (WHERE (ex.exit_price - te.entry_price) * 
       CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END > 0) AS winning_trades,
-    SUM(CASE WHEN (exit_price - te.entry_price) * 
+    SUM(CASE WHEN (ex.exit_price - te.entry_price) * 
       CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END > 0 THEN 
       EXTRACT(DAY FROM ex.exit_date - te.entry_date) END) AS gain_days,
-    SUM(CASE WHEN (exit_price - te.entry_price) * 
+    SUM(CASE WHEN (ex.exit_price - te.entry_price) * 
       CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END <= 0 THEN 
       EXTRACT(DAY FROM ex.exit_date - te.entry_date) END) AS loss_days,
     COUNT(DISTINCT te.id) FILTER (WHERE ex.quantity_exited < te.quantity) AS partially_closed
   FROM trade_exits ex
-  JOIN trade_entries te ON ex.entry_id = te.id
-  GROUP BY 1
+  INNER JOIN trade_entries te ON ex.entry_id = te.id
+  GROUP BY ex.exit_date::date, ex.journal_id
 ),
 fund_flow AS (
   SELECT
     transaction_date::date AS metric_date,
+    journal_id,
     SUM(amount) FILTER (WHERE type = 'DEPOSIT') AS deposits,
     SUM(amount) FILTER (WHERE type = 'WITHDRAW') AS withdrawals
   FROM funds
-  GROUP BY 1
+  GROUP BY 1, 2
 ),
 entry_dates AS (
   SELECT 
     entry_date::date AS metric_date,
+    journal_id,
     COUNT(*) AS new_orders
-  FROM trade_entries
-  GROUP BY 1
+  FROM trade_entries te
+  GROUP BY 1, 2
 )
 SELECT
   ds.metric_date,
+  ds.journal_id,
   COALESCE(tm.gross_profit, 0) AS profit,
   COALESCE(tm.total_charges, 0) AS charges,
   COALESCE(tm.gross_profit, 0) - COALESCE(tm.total_charges, 0) AS net_profit,
