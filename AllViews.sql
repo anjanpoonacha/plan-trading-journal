@@ -190,6 +190,7 @@ WITH date_series AS (
 trade_metrics AS (
   SELECT
     exit_date::date AS metric_date,
+    te.journal_id,
     SUM(
       CASE te.direction
         WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
@@ -211,22 +212,24 @@ trade_metrics AS (
     COUNT(DISTINCT te.id) FILTER (WHERE ex.quantity_exited < te.quantity) AS partially_closed
   FROM trade_exits ex
   JOIN trade_entries te ON ex.entry_id = te.id
-  GROUP BY 1
+  GROUP BY 1, 2
 ),
 fund_flow AS (
   SELECT
+    journal_id,
     transaction_date::date AS metric_date,
     SUM(amount) FILTER (WHERE type = 'DEPOSIT') AS deposits,
     SUM(amount) FILTER (WHERE type = 'WITHDRAW') AS withdrawals
   FROM funds
-  GROUP BY 1
+  GROUP BY 1, 2
 ),
 entry_dates AS (
   SELECT 
+    te.journal_id,
     entry_date::date AS metric_date,
     COUNT(*) AS new_orders
   FROM trade_entries
-  GROUP BY 1
+  GROUP BY 1, 2
 )
 SELECT
   ds.metric_date,
@@ -261,36 +264,7 @@ LEFT JOIN trade_metrics tm ON ds.metric_date = tm.metric_date
 LEFT JOIN fund_flow ff ON ds.metric_date = ff.metric_date
 LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date;
 
-CREATE INDEX idx_dm_journal_date ON daily_metrics(journal_id, metric_date);
-
--- CREATE MATERIALIZED VIEW summary_metrics AS
--- SELECT
---   date_trunc('month', metric_date)::date AS period_start,
---   'month' AS period_type,
---   SUM(profit) AS gross_profit,
---   SUM(charges) AS total_charges,
---   SUM(net_profit) AS net_profit,
---   SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
---   MAX(account_value) AS ending_account_value,
---   MIN(account_value - net_profit) AS starting_account_value,
---   (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
--- FROM daily_metrics
--- GROUP BY 1
-
--- UNION ALL
-
--- SELECT
---   date_trunc('year', metric_date)::date AS period_start,
---   'year' AS period_type,
---   SUM(profit) AS gross_profit,
---   SUM(charges) AS total_charges,
---   SUM(net_profit) AS net_profit,
---   SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
---   MAX(account_value) AS ending_account_value,
---   MIN(account_value - net_profit) AS starting_account_value,
---   (SUM(net_profit) / NULLIF(MIN(account_value - net_profit), 0)) * 100 AS roi_pct
--- FROM daily_metrics
--- GROUP BY 1;
+CREATE INDEX CONCURRENTLY idx_dm_journal_date ON daily_metrics(journal_id, metric_date);
 
 CREATE OR REPLACE FUNCTION get_summary_metrics(
   period_type TEXT DEFAULT 'month', 
