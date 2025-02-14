@@ -37,12 +37,22 @@ SELECT
   i.symbol,
   i.last_price AS cmp,
   te.quantity AS original_quantity,
-  (pm.open_quantity / te.quantity) * 100 AS open_pct,
+  (pm.open_quantity / te.quantity) AS open_pct,
   CASE WHEN te.direction = 'LONG' 
     THEN (te.stop_loss - pm.entry_price)/pm.entry_price
     ELSE (pm.entry_price - te.stop_loss)/pm.entry_price 
-  END * 100 AS sl_pct,
-  (pm.current_stop_loss - pm.entry_price) / pm.entry_price * 100 AS current_sl_pct
+  END  AS sl_pct,
+  (pm.current_stop_loss - pm.entry_price) / pm.entry_price AS current_sl_pct,
+  COALESCE((
+    SELECT SUM(
+      CASE te.direction
+        WHEN 'LONG' THEN (te2.exit_price - te.entry_price) * te2.quantity_exited
+        ELSE (te.entry_price - te2.exit_price) * te2.quantity_exited
+      END - te2.charges
+    )
+    FROM trade_exits te2 
+    WHERE te2.entry_id = te.id
+  ), 0) - te.charges AS net_profit
 FROM position_metrics pm
 JOIN trade_entries te ON pm.id = te.id
 JOIN instruments i ON pm.instrument_id = i.id;
