@@ -11,7 +11,8 @@ CREATE TABLE journals (
     user_id INT NOT NULL REFERENCES users(id),
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(user_id, name)  -- One journal name per user
+    UNIQUE(user_id, name),  -- One journal name per user
+    UNIQUE(user_id, id)  -- Add this to support the notes foreign key
 ); 
 
 CREATE TABLE instruments (
