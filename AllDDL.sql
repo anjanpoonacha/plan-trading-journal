@@ -57,6 +57,7 @@ CREATE TABLE trade_entries (
         COALESCE(current_stop_loss_override, stop_loss)
     ) STORED,
     current_stop_loss_override NUMERIC(18, 8),
+	charges NUMERIC(18, 8) NOT NULL DEFAULT 0,
     entry_date TIMESTAMPTZ NOT NULL,
     journal_id UUID NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id, journal_id) REFERENCES journals(user_id, id),

@@ -13,7 +13,17 @@ SELECT
           COALESCE(SUM(amount) FILTER (WHERE type = 'WITHDRAW'), 0)
    FROM funds 
    WHERE journal_id = jm.journal_id
-     AND transaction_date < DATE_TRUNC('year', CURRENT_DATE)) AS starting_account_value,
+     AND transaction_date < DATE_TRUNC('year', CURRENT_DATE)) 
+   +
+  (SELECT COALESCE(SUM(
+      CASE te.direction
+        WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
+        ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
+      END - ex.charges), 0)
+   FROM trade_entries te
+   JOIN trade_exits ex ON te.id = ex.entry_id
+   WHERE te.journal_id = jm.journal_id
+     AND ex.exit_date < DATE_TRUNC('year', CURRENT_DATE)) AS starting_account_value,
   jm.account_value,
   jm.total_exposure,
   jm.total_exposure / NULLIF(jm.account_value, 0) AS total_exposure_pct,

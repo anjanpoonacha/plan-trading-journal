@@ -31,6 +31,8 @@ This is a software application called **Trading Journal**, used for viewing and 
         - Capital Deployed
         - Starting Account
         - Account Value
+        - Net Profit
+        - ROI %
 
 ---
 ---
