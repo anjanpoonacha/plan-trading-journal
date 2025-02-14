@@ -48,6 +48,8 @@ CREATE TABLE trade_entries (
     ) STORED,
     current_stop_loss_override NUMERIC(18, 8),
     entry_date TIMESTAMPTZ NOT NULL,
+    journal_id INT NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id, journal_id) REFERENCES journals(user_id, id)
     
     -- Calculated Fields (Reference: metricsExplained/2.PositionMetrics.md lines 5-59)
     risk NUMERIC(18, 8) GENERATED ALWAYS AS (
@@ -67,6 +69,8 @@ CREATE TABLE trade_exits (
     quantity_exited NUMERIC(18, 8) NOT NULL CHECK (quantity_exited > 0),
     charges NUMERIC(18, 8) NOT NULL DEFAULT 0,
     entry_price NUMERIC(18, 8) NOT NULL,
+    journal_id INT NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
+    FOREIGN KEY (entry_id, journal_id) REFERENCES trade_entries(id, journal_id),
     
     -- Modified calculated field to use local column
     gain_pct NUMERIC(18, 8) GENERATED ALWAYS AS (
@@ -80,7 +84,9 @@ CREATE TABLE funds (
     user_id INT NOT NULL REFERENCES users(id),
     type VARCHAR(10) CHECK (type IN ('DEPOSIT', 'WITHDRAW')),
     amount NUMERIC(18, 8) NOT NULL CHECK (amount > 0),
-    transaction_date TIMESTAMPTZ NOT NULL
+    transaction_date TIMESTAMPTZ NOT NULL,
+    journal_id INT NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id, journal_id) REFERENCES journals(user_id, id)
 	-- ,
     -- CHECK (
     --     (type = 'WITHDRAW' AND amount <= (
@@ -97,6 +103,7 @@ CREATE TABLE funds (
 CREATE MATERIALIZED VIEW open_trades_base AS
 SELECT
     te.id,
+    te.journal_id,
     te.user_id,
     te.instrument_id,
     te.direction,
@@ -109,27 +116,31 @@ SELECT
         ELSE (te.entry_price - te.current_stop_loss)
     END * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) AS open_risk
 FROM trade_entries te
-LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
+LEFT JOIN trade_exits te2 ON te.id = te2.entry_id AND te.journal_id = te2.journal_id
 GROUP BY te.id
 HAVING te.quantity - COALESCE(SUM(te2.quantity_exited), 0) > 0;
 
 -- Indexes for frequent filters
 CREATE INDEX idx_open_trades_base_user ON open_trades_base(user_id);
 CREATE INDEX idx_open_trades_base_instrument ON open_trades_base(instrument_id);
+CREATE INDEX idx_trade_entries_journal ON trade_entries(journal_id);
+CREATE INDEX idx_trade_exits_journal ON trade_exits(journal_id);
+CREATE INDEX idx_funds_journal ON funds(journal_id);
+CREATE INDEX idx_notes_journal ON notes(journal_id);
 
 -- 2. Create user metrics view
-CREATE MATERIALIZED VIEW user_metrics AS
+CREATE MATERIALIZED VIEW journal_metrics AS
 WITH fund_data AS (
     SELECT 
-        user_id,
+        journal_id,
         SUM(amount) FILTER (WHERE type = 'DEPOSIT') AS total_deposits,
         SUM(amount) FILTER (WHERE type = 'WITHDRAW') AS total_withdrawals
     FROM funds
-    GROUP BY user_id
+    GROUP BY journal_id
 ),
 realized_profits AS (
     SELECT
-        te.user_id,
+        te.journal_id,
         SUM(
             CASE te.direction
                 WHEN 'LONG' THEN (te2.exit_price - te.entry_price) * te2.quantity_exited
@@ -137,20 +148,21 @@ realized_profits AS (
             END - te2.charges
         ) AS total_realized
     FROM trade_exits te2
-    JOIN trade_entries te ON te.id = te2.entry_id
-    GROUP BY te.user_id
+    JOIN trade_entries te ON te.id = te2.entry_id AND te.journal_id = te2.journal_id
+    GROUP BY te.journal_id
 )
 SELECT
-    u.id AS user_id,
+    j.id AS journal_id,
+    j.user_id,
     COALESCE(fd.total_deposits, 0) - COALESCE(fd.total_withdrawals, 0) AS capital_deployed,
     COALESCE(fd.total_deposits, 0) - COALESCE(fd.total_withdrawals, 0) + COALESCE(rp.total_realized, 0) AS account_value,
     COALESCE(SUM(otb.exposure), 0) AS total_exposure,
     COALESCE(SUM(otb.open_risk), 0) AS total_open_risk
-FROM users u
-LEFT JOIN fund_data fd ON u.id = fd.user_id
-LEFT JOIN realized_profits rp ON u.id = rp.user_id
-LEFT JOIN open_trades_base otb ON u.id = otb.user_id
-GROUP BY u.id, fd.total_deposits, fd.total_withdrawals, rp.total_realized;
+FROM journals j
+LEFT JOIN fund_data fd ON j.id = fd.journal_id
+LEFT JOIN realized_profits rp ON j.id = rp.journal_id
+LEFT JOIN open_trades_base otb ON j.id = otb.journal_id
+GROUP BY j.id, fd.total_deposits, fd.total_withdrawals, rp.total_realized;
 
 -- 3. Create position metrics view
 CREATE MATERIALIZED VIEW position_metrics AS
@@ -159,20 +171,20 @@ SELECT
     otb.exposure / NULLIF(um.account_value, 0) AS exposure_pct,
     otb.open_risk / NULLIF(um.account_value, 0) AS open_risk_pct
 FROM open_trades_base otb
-JOIN user_metrics um ON otb.user_id = um.user_id;
+JOIN journal_metrics um ON otb.journal_id = um.journal_id;
 
 -- Indexes and Refresh Triggers (Optimized for JournalingSystem.md flows)
 CREATE INDEX idx_trade_entries_user ON trade_entries(user_id);
 CREATE INDEX idx_trade_exits_entry ON trade_exits(entry_id);
 CREATE INDEX idx_funds_user ON funds(user_id);
-CREATE UNIQUE INDEX idx_user_metrics ON user_metrics(user_id);
+CREATE UNIQUE INDEX idx_journal_metrics ON journal_metrics(journal_id);
 CREATE INDEX idx_instruments_symbol ON instruments(symbol);
 CREATE INDEX idx_notes_user ON notes(user_id);
 
 -- Automatic Metrics Refresh
 CREATE OR REPLACE FUNCTION refresh_metrics() RETURNS TRIGGER AS $$
 BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY user_metrics;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY journal_metrics;
     REFRESH MATERIALIZED VIEW CONCURRENTLY position_metrics;
     RETURN NULL;
 END;
