@@ -100,8 +100,8 @@ SELECT
   COALESCE(te2.charges, 0) AS charges,
   (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) / thm.entry_price * 100 AS gain_pct,
   (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) * thm.quantity AS net_profit,
-  (tdm.exit_price - tdm.entry_price) / 
-  NULLIF(ABS(tdm.entry_price - thm.stop_loss), 0) AS r_multiple
+  (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) / 
+  NULLIF(ABS(thm.entry_price - thm.stop_loss), 0) AS r_multiple
 FROM trade_history_metrics thm
 LEFT JOIN trade_exits te2 ON thm.id = te2.entry_id;
 

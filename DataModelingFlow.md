@@ -68,6 +68,7 @@ Future Scope
     15. Total Open Risk (TOR)
     16. Total Open Risk %
     17. CMP (Current Market Price) - (needs external API call)
+    18. Net Profit (Should include the charges also)
 
     For more details, refer to the [Position Metrics](metricsExplained/2.PositionMetrics.md).
 
@@ -96,7 +97,7 @@ Future Scope
     22. Days
     23. RR
     24. Charges
-    25. Net Profit
+    25. Net Profit (Should include the charges also)
     26. Actions
 
 - User can activate the following actions:
