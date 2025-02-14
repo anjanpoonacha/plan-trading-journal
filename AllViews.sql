@@ -259,6 +259,8 @@ LEFT JOIN trade_metrics tm ON ds.metric_date = tm.metric_date
 LEFT JOIN fund_flow ff ON ds.metric_date = ff.metric_date
 LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date;
 
+CREATE INDEX idx_daily_metrics_date ON daily_metrics(metric_date);
+
 CREATE MATERIALIZED VIEW summary_metrics AS
 SELECT
   date_trunc('month', metric_date)::date AS period_start,
