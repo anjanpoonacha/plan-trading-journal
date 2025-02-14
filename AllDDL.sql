@@ -57,12 +57,12 @@ CREATE TABLE trade_exits (
     exit_price NUMERIC(18, 8) NOT NULL,
     quantity_exited NUMERIC(18, 8) NOT NULL CHECK (quantity_exited > 0),
     charges NUMERIC(18, 8) NOT NULL DEFAULT 0,
+    entry_price NUMERIC(18, 8) NOT NULL,
     CHECK (exit_date > (SELECT entry_date FROM trade_entries WHERE id = entry_id)),
     
-    -- Calculated Fields (Reference: metricsExplained/3.TradeHistory.md lines 35-107)
+    -- Modified calculated field to use local column
     gain_pct NUMERIC(18, 8) GENERATED ALWAYS AS (
-        (exit_price - (SELECT entry_price FROM trade_entries WHERE id = entry_id)) / 
-        (SELECT entry_price FROM trade_entries WHERE id = entry_id)
+        (exit_price - entry_price) / entry_price
     ) STORED
 );
 
@@ -173,19 +173,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER refresh_metrics_trigger
-AFTER INSERT OR UPDATE OR DELETE ON trade_entries
-FOR EACH STATEMENT EXECUTE FUNCTION refresh_metrics();
+-- Revised trigger for trade_entries
+CREATE TRIGGER refresh_metrics_trade_entries
+AFTER INSERT OR UPDATE OF entry_price, quantity, stop_loss, current_stop_loss_override OR DELETE ON trade_entries
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION refresh_metrics();
 
-CREATE TRIGGER refresh_metrics_trigger_funds
-AFTER INSERT OR UPDATE OR DELETE ON funds
-FOR EACH STATEMENT EXECUTE FUNCTION refresh_metrics();
+-- Revised trigger for funds
+CREATE TRIGGER refresh_metrics_funds
+AFTER INSERT OR UPDATE OF amount, type OR DELETE ON funds
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION refresh_metrics();
 
-CREATE TRIGGER refresh_metrics_trigger_exits
-AFTER INSERT OR UPDATE OR DELETE ON trade_exits
-FOR EACH STATEMENT EXECUTE FUNCTION refresh_metrics();
+-- Revised trigger for trade_exits
+CREATE TRIGGER refresh_metrics_trade_exits 
+AFTER INSERT OR UPDATE OF exit_price, quantity_exited, charges OR DELETE ON trade_exits
+FOR EACH ROW WHEN (pg_trigger_depth() = 0)
+EXECUTE FUNCTION refresh_metrics();
 
 -- Daily at 2AM
-0 2 * * * psql -c "REFRESH MATERIALIZED VIEW CONCURRENTLY summary_view_mv;"
--- On trade modifications
-CREATE TRIGGER refresh_summary AFTER INSERT OR UPDATE ON trade_exits ... 
+-- 0 2 * * * psql -c "REFRESH MATERIALIZED VIEW CONCURRENTLY summary_view_mv;"
+-- -- On trade modifications
+-- CREATE TRIGGER refresh_summary AFTER INSERT OR UPDATE ON trade_exits 
