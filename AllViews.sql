@@ -22,7 +22,10 @@ SELECT
   i.last_price AS cmp,
   te.quantity AS original_quantity,
   (pm.open_quantity / te.quantity) * 100 AS open_pct,
-  (te.stop_loss - pm.entry_price) / pm.entry_price * 100 AS sl_pct,
+  CASE WHEN te.direction = 'LONG' 
+    THEN (te.stop_loss - pm.entry_price)/pm.entry_price
+    ELSE (pm.entry_price - te.stop_loss)/pm.entry_price 
+  END * 100 AS sl_pct,
   (pm.current_stop_loss - pm.entry_price) / pm.entry_price * 100 AS current_sl_pct
 FROM position_metrics pm
 JOIN trade_entries te ON pm.id = te.id
@@ -38,7 +41,10 @@ SELECT
   te.quantity,
   te.entry_price,
   te.stop_loss,
-  (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
+  CASE WHEN te.direction = 'LONG' 
+    THEN (te.stop_loss - te.entry_price)/te.entry_price
+    ELSE (te.entry_price - te.stop_loss)/te.entry_price 
+  END * 100 AS sl_pct,
   te.exposure AS position_size,
   te.exposure / NULLIF((
     SELECT account_value 
@@ -58,10 +64,19 @@ SELECT
     LIMIT 1
   ), 0) * 100 AS rpt_pct,
   COALESCE(SUM(te2.quantity_exited) OVER (PARTITION BY te.id), 0) / te.quantity * 100 AS exit_pct,
-  (SELECT MAX(exit_date) FROM trade_exits WHERE entry_id = te.id) AS latest_exit_date
+  (SELECT MAX(exit_date) FROM trade_exits WHERE entry_id = te.id) AS latest_exit_date,
+  EXTRACT(DAYS FROM COALESCE(latest_exit_date, CURRENT_DATE) - te.entry_date) AS days_held
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
-LEFT JOIN trade_exits te2 ON te.id = te2.entry_id;
+LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
+CROSS JOIN LATERAL (
+  SELECT account_value 
+  FROM journal_metrics 
+  WHERE journal_id = te.journal_id
+    AND created_at <= te.entry_date
+  ORDER BY created_at DESC
+  LIMIT 1
+) jm;
 
 CREATE MATERIALIZED VIEW trade_detail_metrics AS
 SELECT
@@ -69,7 +84,9 @@ SELECT
   COALESCE(te2.exit_price, thm.entry_price) AS exit_price,
   COALESCE(te2.charges, 0) AS charges,
   (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) / thm.entry_price * 100 AS gain_pct,
-  (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) * thm.quantity AS net_profit
+  (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) * thm.quantity AS net_profit,
+  (tdm.exit_price - tdm.entry_price) / 
+  NULLIF(ABS(tdm.entry_price - thm.stop_loss), 0) AS r_multiple
 FROM trade_history_metrics thm
 LEFT JOIN trade_exits te2 ON thm.id = te2.entry_id;
 
