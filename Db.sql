@@ -8,7 +8,7 @@ SELECT
     (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) / te.quantity * 100 AS open_pct,
     te.entry_price,
     te.stop_loss AS sl,
-    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
     (te.quantity * te.entry_price) AS exposure,
     (te.quantity * te.entry_price) / jm.account_value * 100 AS exposure_pct,
     jm.total_exposure,
@@ -67,11 +67,11 @@ SELECT
     te.quantity,
     te.entry_price AS entry,
     te.stop_loss AS sl,
-    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
     (te.quantity * te.entry_price) AS position_size,
     (te.quantity * te.entry_price) / (hav.trade_date_capital + hav.prior_profits) * 100 AS position_size_pct,
-    te.quantity * (te.entry_price - te.current_stop_loss) AS rpt,
-    (te.quantity * (te.entry_price - te.current_stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
+    te.quantity * (te.entry_price - te.stop_loss) AS rpt,
+    (te.quantity * (te.entry_price - te.stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
     COALESCE(tea.total_exited / te.quantity * 100, 0) AS exit_pct,
     tea.avg_exit_price,
     tea.latest_exit_date,
@@ -83,8 +83,8 @@ SELECT
     ((tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges) / (hav.trade_date_capital + hav.prior_profits) * 100 AS account_gain_pct,
     EXTRACT(DAY FROM NOW() - te.entry_date) AS days,
     CASE
-        WHEN (te.entry_price - te.current_stop_loss) <> 0 
-        THEN (tea.avg_exit_price - te.entry_price) / (te.entry_price - te.current_stop_loss)
+        WHEN (te.entry_price - te.stop_loss) <> 0 
+        THEN (tea.avg_exit_price - te.entry_price) / (te.entry_price - te.stop_loss)
         ELSE NULL
     END AS rr,
     tea.total_charges,
@@ -119,7 +119,7 @@ SELECT
     (te.quantity * te.entry_price) AS position_size,
     (te.quantity * te.entry_price) / jm.account_value * 100 AS position_size_pct,
     te.stop_loss,
-    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
     te.risk AS rpt,
     te.risk / jm.account_value * 100 AS rpt_pct,
     jsonb_agg(jsonb_build_object(
@@ -131,8 +131,8 @@ SELECT
         'charges', te2.charges,
         'profit', (te2.exit_price - te.entry_price) * te2.quantity_exited,
         'r_multiple', CASE te.direction
-            WHEN 'LONG' THEN (te2.exit_price - te.entry_price) / (te.entry_price - te.current_stop_loss)
-            ELSE (te.entry_price - te2.exit_price) / (te.entry_price - te.current_stop_loss)
+            WHEN 'LONG' THEN (te2.exit_price - te.entry_price) / (te.entry_price - te.stop_loss)
+            ELSE (te.entry_price - te2.exit_price) / (te.entry_price - te.stop_loss)
         END
     )) AS exit_records
 FROM trade_entries te
@@ -187,11 +187,6 @@ SELECT
 FROM trade_data td
 JOIN journal_metrics jm ON true;
 
--- Add generated column to trade_entries (Reference: AllDDL.sql lines 51-54)
-ALTER TABLE trade_entries ADD COLUMN current_stop_loss NUMERIC(18, 8) 
-    GENERATED ALWAYS AS (COALESCE(current_stop_loss_override, stop_loss)) STORED;
-ALTER TABLE trade_entries ADD COLUMN current_stop_loss_override NUMERIC(18, 8);
-
 -- Corrected RoSV Calculation (metricsExplained/3.TradeHistory.md lines 87-96)
 WITH starting_account_adjusted AS (
     SELECT 
@@ -210,11 +205,11 @@ SELECT
     te.quantity,
     te.entry_price AS entry,
     te.stop_loss AS sl,
-    (te.entry_price - te.current_stop_loss) / te.entry_price * 100 AS sl_pct,
+    (te.entry_price - te.stop_loss) / te.entry_price * 100 AS sl_pct,
     (te.quantity * te.entry_price) AS position_size,
     (te.quantity * te.entry_price) / (hav.trade_date_capital + hav.prior_profits) * 100 AS position_size_pct,
-    te.quantity * (te.entry_price - te.current_stop_loss) AS rpt,
-    (te.quantity * (te.entry_price - te.current_stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
+    te.quantity * (te.entry_price - te.stop_loss) AS rpt,
+    (te.quantity * (te.entry_price - te.stop_loss)) / (hav.trade_date_capital + hav.prior_profits) * 100 AS rpt_pct,
     COALESCE(tea.total_exited / te.quantity * 100, 0) AS exit_pct,
     tea.avg_exit_price,
     tea.latest_exit_date,
@@ -226,8 +221,8 @@ SELECT
     ((tea.avg_exit_price - te.entry_price) * te.quantity - tea.total_charges) / (hav.trade_date_capital + hav.prior_profits) * 100 AS account_gain_pct,
     EXTRACT(DAY FROM NOW() - te.entry_date) AS days,
     CASE
-        WHEN (te.entry_price - te.current_stop_loss) <> 0 
-        THEN (tea.avg_exit_price - te.entry_price) / (te.entry_price - te.current_stop_loss)
+        WHEN (te.entry_price - te.stop_loss) <> 0 
+        THEN (tea.avg_exit_price - te.entry_price) / (te.entry_price - te.stop_loss)
         ELSE NULL
     END AS rr,
     tea.total_charges,
