@@ -36,7 +36,12 @@ CREATE TABLE notes (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(noteable_type, noteable_id),
     journal_id UUID NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id, journal_id) REFERENCES journals(user_id, id)
+    FOREIGN KEY (journal_id, noteable_id) 
+    REFERENCES trade_entries(journal_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (journal_id, noteable_id) 
+    REFERENCES trade_exits(journal_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (journal_id, noteable_id) 
+    REFERENCES funds(journal_id, id) ON DELETE CASCADE
 );
 
 -- Trade Entities (Modified for Metric Calculations)
@@ -216,6 +221,11 @@ CREATE TRIGGER refresh_metrics_trade_exits
 AFTER INSERT OR UPDATE OF exit_price, quantity_exited, charges OR DELETE ON trade_exits
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)
 EXECUTE FUNCTION refresh_metrics();
+
+-- Add refresh for open_trades_base
+CREATE TRIGGER refresh_open_trades_base 
+AFTER INSERT OR UPDATE OR DELETE ON trade_exits
+FOR EACH ROW EXECUTE PROCEDURE refresh_metrics();
 
 -- -- Add validation trigger for exit_date
 -- CREATE OR REPLACE FUNCTION validate_exit_date() RETURNS TRIGGER AS $$
