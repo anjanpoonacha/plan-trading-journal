@@ -84,10 +84,33 @@ CREATE TABLE funds (
     -- )
 );
 
--- Create independent user metrics first
+-- 1. Create base view for open position calculations (used by both metrics)
+CREATE MATERIALIZED VIEW open_trades_base AS
+SELECT
+    te.id,
+    te.user_id,
+    te.instrument_id,
+    te.direction,
+    te.entry_price,
+    te.current_stop_loss,
+    te.quantity - COALESCE(SUM(te2.quantity_exited), 0) AS open_quantity,
+    (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) * te.entry_price AS exposure,
+    CASE te.direction
+        WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price)
+        ELSE (te.entry_price - te.current_stop_loss)
+    END * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) AS open_risk
+FROM trade_entries te
+LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
+GROUP BY te.id
+HAVING te.quantity - COALESCE(SUM(te2.quantity_exited), 0) > 0;
+
+-- Indexes for frequent filters
+CREATE INDEX idx_open_trades_base_user ON open_trades_base(user_id);
+CREATE INDEX idx_open_trades_base_instrument ON open_trades_base(instrument_id);
+
+-- 2. Create user metrics view
 CREATE MATERIALIZED VIEW user_metrics AS
-WITH 
-fund_summary AS (
+WITH fund_data AS (
     SELECT 
         user_id,
         SUM(amount) FILTER (WHERE type = 'DEPOSIT') AS total_deposits,
@@ -103,69 +126,31 @@ realized_profits AS (
                 WHEN 'LONG' THEN (te2.exit_price - te.entry_price) * te2.quantity_exited
                 ELSE (te.entry_price - te2.exit_price) * te2.quantity_exited
             END - te2.charges
-        ) AS total_realized_profit
+        ) AS total_realized
     FROM trade_exits te2
     JOIN trade_entries te ON te.id = te2.entry_id
-    GROUP BY te.user_id
-),
-position_calculations AS (
-    SELECT
-        te.user_id,
-        SUM(
-            (te.quantity - COALESCE(SUM(te2.quantity_exited), 0)) * te.entry_price
-        ) FILTER (WHERE te.quantity - COALESCE(SUM(te2.quantity_exited), 0) > 0) AS total_exposure,
-        SUM(
-            CASE te.direction
-                WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0))
-                ELSE (te.entry_price - te.current_stop_loss) * (te.quantity - COALESCE(SUM(te2.quantity_exited), 0))
-            END
-        ) FILTER (WHERE te.quantity - COALESCE(SUM(te2.quantity_exited), 0) > 0) AS total_open_risk
-    FROM trade_entries te
-    LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
     GROUP BY te.user_id
 )
 SELECT
     u.id AS user_id,
-    COALESCE(fs.total_deposits, 0) - COALESCE(fs.total_withdrawals, 0) AS capital_deployed,
-    COALESCE(fs.total_deposits, 0) - COALESCE(fs.total_withdrawals, 0) + COALESCE(rp.total_realized_profit, 0) AS account_value,
-    COALESCE(pc.total_exposure, 0) AS total_exposure,
-    COALESCE(pc.total_open_risk, 0) AS total_open_risk
+    COALESCE(fd.total_deposits, 0) - COALESCE(fd.total_withdrawals, 0) AS capital_deployed,
+    COALESCE(fd.total_deposits, 0) - COALESCE(fd.total_withdrawals, 0) + COALESCE(rp.total_realized, 0) AS account_value,
+    COALESCE(SUM(otb.exposure), 0) AS total_exposure,
+    COALESCE(SUM(otb.open_risk), 0) AS total_open_risk
 FROM users u
-LEFT JOIN fund_summary fs ON u.id = fs.user_id
+LEFT JOIN fund_data fd ON u.id = fd.user_id
 LEFT JOIN realized_profits rp ON u.id = rp.user_id
-LEFT JOIN position_calculations pc ON u.id = pc.user_id;
+LEFT JOIN open_trades_base otb ON u.id = otb.user_id
+GROUP BY u.id, fd.total_deposits, fd.total_withdrawals, rp.total_realized;
 
--- Then create position_metrics that depends on user_metrics
+-- 3. Create position metrics view
 CREATE MATERIALIZED VIEW position_metrics AS
-WITH open_trades AS (
-    SELECT 
-        te.*,
-        te.quantity - COALESCE(SUM(te2.quantity_exited), 0) AS open_quantity
-    FROM trade_entries te
-    LEFT JOIN trade_exits te2 ON te.id = te2.entry_id
-    GROUP BY te.id
-    HAVING te.quantity - COALESCE(SUM(te2.quantity_exited), 0) > 0
-)
 SELECT
-    ot.id,
-    ot.user_id,
-    ot.instrument_id,
-    ot.open_quantity,
-    ot.entry_price,
-    ot.current_stop_loss,
-    ot.direction,
-    ot.open_quantity * ot.entry_price AS exposure,
-    (ot.open_quantity * ot.entry_price) / um.account_value AS exposure_pct,
-    CASE ot.direction
-        WHEN 'LONG' THEN (ot.current_stop_loss - ot.entry_price) * ot.open_quantity
-        ELSE (ot.entry_price - ot.current_stop_loss) * ot.open_quantity
-    END AS open_risk,
-    CASE ot.direction
-        WHEN 'LONG' THEN (ot.current_stop_loss - ot.entry_price) * ot.open_quantity / um.account_value
-        ELSE (ot.entry_price - ot.current_stop_loss) * ot.open_quantity / um.account_value
-    END AS open_risk_pct
-FROM open_trades ot
-JOIN user_metrics um ON ot.user_id = um.user_id;
+    otb.*,
+    otb.exposure / NULLIF(um.account_value, 0) AS exposure_pct,
+    otb.open_risk / NULLIF(um.account_value, 0) AS open_risk_pct
+FROM open_trades_base otb
+JOIN user_metrics um ON otb.user_id = um.user_id;
 
 -- Indexes and Refresh Triggers (Optimized for JournalingSystem.md flows)
 CREATE INDEX idx_trade_entries_user ON trade_entries(user_id);
