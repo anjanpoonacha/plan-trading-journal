@@ -31,7 +31,9 @@ CREATE TABLE notes (
     noteable_id INT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(noteable_type, noteable_id)
+    UNIQUE(noteable_type, noteable_id),
+    journal_id INT NOT NULL REFERENCES journals(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id, journal_id) REFERENCES journals(user_id, id)
 );
 
 -- Trade Entities (Modified for Metric Calculations)
