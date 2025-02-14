@@ -196,7 +196,17 @@ trade_metrics AS (
     ) AS gross_profit,
     SUM(ex.charges + te.charges) AS total_charges,
     COUNT(DISTINCT te.id) FILTER (WHERE exit_date IS NOT NULL) AS closed_orders,
-    COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = exit_date::date) AS new_orders
+    COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = exit_date::date) AS new_orders,
+    SUM(EXTRACT(DAY FROM ex.exit_date - te.entry_date)) AS total_holding_days,
+    COUNT(DISTINCT te.id) FILTER (WHERE (exit_price - te.entry_price) * 
+      CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END > 0) AS winning_trades,
+    SUM(CASE WHEN (exit_price - te.entry_price) * 
+      CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END > 0 THEN 
+      EXTRACT(DAY FROM ex.exit_date - te.entry_date) END) AS gain_days,
+    SUM(CASE WHEN (exit_price - te.entry_price) * 
+      CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END <= 0 THEN 
+      EXTRACT(DAY FROM ex.exit_date - te.entry_date) END) AS loss_days,
+    COUNT(DISTINCT te.id) FILTER (WHERE ex.quantity_exited < te.quantity) AS partially_closed
   FROM trade_exits ex
   JOIN trade_entries te ON ex.entry_id = te.id
   GROUP BY 1
@@ -218,17 +228,32 @@ entry_dates AS (
 )
 SELECT
   ds.metric_date,
-  COALESCE(tm.gross_profit, 0) AS gross_profit,
-  COALESCE(tm.total_charges, 0) AS total_charges,
+  COALESCE(tm.gross_profit, 0) AS profit,
+  COALESCE(tm.total_charges, 0) AS charges,
   COALESCE(tm.gross_profit, 0) - COALESCE(tm.total_charges, 0) AS net_profit,
-  COALESCE(ed.new_orders, 0) AS new_orders,
-  COALESCE(tm.closed_orders, 0) AS closed_orders,
+  COALESCE(ed.new_orders, 0) AS new_orders_length,
+  COALESCE(tm.closed_orders, 0) AS closed_orders_length,
+  COALESCE(tm.partially_closed, 0) AS partially_closed_orders,
   COALESCE(ff.deposits, 0) AS deposits,
   COALESCE(ff.withdrawals, 0) AS withdrawals,
-  SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (ORDER BY ds.metric_date) AS cumulative_funds,
-  SUM(COALESCE(tm.gross_profit - tm.total_charges, 0)) OVER (ORDER BY ds.metric_date) AS cumulative_profit,
+  SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (ORDER BY ds.metric_date) AS capital,
   SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (ORDER BY ds.metric_date) +
-  SUM(COALESCE(tm.gross_profit - tm.total_charges, 0)) OVER (ORDER BY ds.metric_date) AS account_value
+  SUM(COALESCE(tm.gross_profit - tm.total_charges, 0)) OVER (ORDER BY ds.metric_date) AS account_value,
+  CASE WHEN tm.closed_orders > 0 
+    THEN (tm.winning_trades::float / tm.closed_orders) * 100 
+    ELSE 0 END AS win_rate,
+  CASE WHEN tm.closed_orders > 0 
+    THEN tm.total_holding_days / tm.closed_orders 
+    ELSE 0 END AS avg_holding_days,
+  CASE WHEN tm.closed_orders > 0 
+    THEN (SUM(tm.gross_profit) OVER () / tm.closed_orders) 
+    ELSE 0 END AS avg_rpt,
+  CASE WHEN tm.gain_days > 0 
+    THEN tm.gain_days / tm.winning_trades 
+    ELSE 0 END AS avg_gain_days,
+  CASE WHEN tm.loss_days > 0 
+    THEN tm.loss_days / (tm.closed_orders - tm.winning_trades) 
+    ELSE 0 END AS avg_loss_days
 FROM date_series ds
 LEFT JOIN trade_metrics tm ON ds.metric_date = tm.metric_date
 LEFT JOIN fund_flow ff ON ds.metric_date = ff.metric_date
@@ -238,8 +263,8 @@ CREATE MATERIALIZED VIEW summary_metrics AS
 SELECT
   date_trunc('month', metric_date)::date AS period_start,
   'month' AS period_type,
-  SUM(gross_profit) AS gross_profit,
-  SUM(total_charges) AS total_charges,
+  SUM(profit) AS gross_profit,
+  SUM(charges) AS total_charges,
   SUM(net_profit) AS net_profit,
   SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
   MAX(account_value) AS ending_account_value,
@@ -253,8 +278,8 @@ UNION ALL
 SELECT
   date_trunc('year', metric_date)::date AS period_start,
   'year' AS period_type,
-  SUM(gross_profit) AS gross_profit,
-  SUM(total_charges) AS total_charges,
+  SUM(profit) AS gross_profit,
+  SUM(charges) AS total_charges,
   SUM(net_profit) AS net_profit,
   SUM(deposits) - SUM(withdrawals) AS net_fund_flow,
   MAX(account_value) AS ending_account_value,
