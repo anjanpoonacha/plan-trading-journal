@@ -71,12 +71,14 @@ WITH exit_aggregates AS (
         'charges', trade_exits.charges
       ) ORDER BY exit_date
     ) AS exit_records,
+    SUM(exit_price * quantity_exited) AS total_exit_price,
     SUM(
       CASE WHEN te.direction = 'LONG' 
         THEN quantity_exited * (exit_price - te.entry_price)
         ELSE quantity_exited * (te.entry_price - exit_price)
       END - trade_exits.charges
-    ) AS position_net_profit
+    ) AS position_net_profit,
+    SUM(trade_exits.charges) AS total_exit_charges
   FROM trade_exits
   JOIN trade_entries te ON te.id = trade_exits.entry_id
   GROUP BY entry_id
@@ -126,8 +128,21 @@ SELECT
   ea.total_exited AS exited_quantity,
   (ea.total_exited / te.quantity) * 100 AS exit_pct,
   ea.latest_exit_date,
-  ea.position_net_profit AS net_profit,
-  ea.exit_records
+  (ea.position_net_profit - te.charges) AS net_profit,
+  (ea.position_net_profit - te.charges) / NULLIF(tav.capital_deployed, 0) * 100 AS rocd,
+  (tav.capital_deployed + tav.realized_profits) AS starting_account,
+  (ea.position_net_profit - te.charges) / NULLIF(tav.capital_deployed + tav.realized_profits, 0) * 100 AS ros_v,
+  (tav.capital_deployed + tav.realized_profits) AS account_value,
+  EXTRACT(DAY FROM COALESCE(ea.latest_exit_date, CURRENT_DATE) - te.entry_date) AS days,
+  CASE WHEN te.risk != 0 
+       THEN (ea.position_net_profit - te.charges) / te.risk 
+  END AS rr,
+  te.charges + COALESCE(ea.total_exit_charges, 0) AS charges,
+  CASE WHEN ea.total_exited > 0 
+       THEN ea.total_exit_price / ea.total_exited 
+  END AS exit_price,
+  ea.exit_records,
+  (ea.total_exit_price - te.entry_price * ea.total_exited) / te.entry_price * 100 AS gain_pct
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 JOIN trade_account_values tav ON te.id = tav.id
@@ -136,8 +151,8 @@ LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id;
 CREATE MATERIALIZED VIEW trade_detail_metrics AS
 SELECT
   thm.*,
-  COALESCE(te2.exit_price, thm.entry_price) AS exit_price,
-  COALESCE(te2.charges, 0) AS charges,
+  COALESCE(te2.exit_price, thm.entry_price) AS specific_exit_price,
+  COALESCE(te2.charges, 0) AS exit_charges,
   (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) / thm.entry_price * 100 AS gain_pct,
   (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) * thm.quantity AS gross_profit,
   (COALESCE(te2.exit_price, thm.entry_price) - thm.entry_price) / 
