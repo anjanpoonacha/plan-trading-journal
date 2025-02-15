@@ -1,3 +1,5 @@
+```mermaid
+
 erDiagram
        trades ||--o{ trade_exits : "Has"
        trades }|--|| instruments : "Uses"
@@ -7,3 +9,5 @@ erDiagram
        notes }o--|{ transactions : "For Deposit/Withdraw"
        notes }o--|{ trades : "For Entry"
        notes }o--|{ trade_exits : "For Exit"
+
+```
