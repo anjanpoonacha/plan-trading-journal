@@ -62,8 +62,9 @@ realized_profits AS (
             CASE te.direction
                 WHEN 'LONG' THEN (te2.exit_price - te.entry_price) * te2.quantity_exited
                 ELSE (te.entry_price - te2.exit_price) * te2.quantity_exited
-            END - te2.charges - te.charges
-        ) AS total_realized
+            END - te2.charges
+        ) AS exit_profits,
+        SUM(te.charges) AS entry_charges
     FROM trade_exits te2
     JOIN trade_entries te ON te.id = te2.entry_id AND te.journal_id = te2.journal_id
     GROUP BY te.journal_id
@@ -72,14 +73,14 @@ SELECT
     j.id AS journal_id,
     j.user_id,
     COALESCE(fd.total_deposits, 0) - COALESCE(fd.total_withdrawals, 0) AS capital_deployed,
-    COALESCE(fd.total_deposits, 0) - COALESCE(fd.total_withdrawals, 0) + COALESCE(rp.total_realized, 0) AS account_value,
+    COALESCE(fd.total_deposits, 0) - COALESCE(fd.total_withdrawals, 0) + COALESCE(rp.exit_profits, 0) AS account_value,
     COALESCE(SUM(otb.exposure), 0) AS total_exposure,
     COALESCE(SUM(otb.open_risk), 0) AS total_open_risk
 FROM journals j
 LEFT JOIN fund_data fd ON j.id = fd.journal_id
 LEFT JOIN realized_profits rp ON j.id = rp.journal_id
 LEFT JOIN open_trades_base otb ON j.id = otb.journal_id
-GROUP BY j.id, fd.total_deposits, fd.total_withdrawals, rp.total_realized;
+GROUP BY j.id, fd.total_deposits, fd.total_withdrawals, rp.exit_profits;
 
 -- 3. Create position metrics view
 CREATE MATERIALIZED VIEW position_metrics AS
