@@ -37,10 +37,10 @@ fund_metrics AS (
     SELECT
         f.journal_id,
         f.transaction_date,
-        SUM(amount) FILTER (WHERE type = 'DEPOSIT') OVER w AS cumulative_deposits,
-        SUM(amount) FILTER (WHERE type = 'WITHDRAW') OVER w AS cumulative_withdrawals,
-        SUM(amount) FILTER (WHERE type = 'DEPOSIT') OVER w -
-        SUM(amount) FILTER (WHERE type = 'WITHDRAW') OVER w AS capital_deployed
+        COALESCE(SUM(amount) FILTER (WHERE type = 'DEPOSIT') OVER w, 0) AS cumulative_deposits,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'WITHDRAW') OVER w, 0) AS cumulative_withdrawals,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'DEPOSIT') OVER w, 0) -
+        COALESCE(SUM(amount) FILTER (WHERE type = 'WITHDRAW') OVER w, 0) AS capital_deployed
     FROM funds f
     WINDOW w AS (PARTITION BY journal_id ORDER BY transaction_date RANGE UNBOUNDED PRECEDING)
 ),
@@ -85,12 +85,12 @@ SELECT
     END AS avg_exit_price,
     -- Capital Metrics
     fm.capital_deployed,
-    (fm.capital_deployed + rp.historical_profit) AS starting_account_value,
-    COALESCE((ea.realized_profit - te.charges) / NULLIF(fm.capital_deployed, 0), 0) * 100 AS rocd,
-    (ea.realized_profit - te.charges) / NULLIF(
-        COALESCE((SELECT capital_deployed + historical_profit 
-         FROM realized_profits rp2 
-         WHERE rp2.id = te.id), fm.capital_deployed), 0) * 100 AS ros_v
+    COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0) AS starting_account_value,
+    COALESCE((ea.realized_profit - te.charges) / NULLIF(COALESCE(fm.capital_deployed, 0), 0), 0) * 100 AS rocd,
+    COALESCE(
+        (ea.realized_profit - te.charges) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0),
+        0
+    ) * 100 AS ros_v
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id AND te.journal_id = ea.journal_id
