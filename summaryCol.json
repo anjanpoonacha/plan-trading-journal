@@ -1,0 +1,74 @@
+[
+	{
+		"headerName": "Period"
+	},
+	{
+		"headerName": "OpenTrades"
+	},
+	{
+		"headerName": "NewTrades"
+	},
+	{
+		"headerName": "FullyClosed"
+	},
+	{
+		"headerName": "PartiallyClosed"
+	},
+	{
+		"headerName": "Win Rate %"
+	},
+	{
+		"headerName": "Avg. RPT"
+	},
+	{
+		"headerName": "Avg. RPT %"
+	},
+	{
+		"headerName": "Avg. Loss"
+	},
+	{
+		"headerName": "Avg. Loss %"
+	},
+	{
+		"headerName": "Avg. Loss Days"
+	},
+	{
+		"headerName": "Avg. Gain"
+	},
+	{
+		"headerName": "Avg. Gain %"
+	},
+	{
+		"headerName": "Avg. Gain Days"
+	},
+	{
+		"headerName": "ARR"
+	},
+	{
+		"headerName": "Avg. Days"
+	},
+	{
+		"headerName": "Profit"
+	},
+	{
+		"headerName": "Charges"
+	},
+	{
+		"headerName": "Net Profit"
+	},
+	{
+		"headerName": "Account Value"
+	},
+	{
+		"headerName": "Capital Deployed"
+	},
+	{
+		"headerName": "RoCD"
+	},
+	{
+		"headerName": "Adjusted Account Value"
+	},
+	{
+		"headerName": "RoSAV"
+	}
+]
