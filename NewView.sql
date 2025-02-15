@@ -21,6 +21,10 @@ WITH exit_aggregates AS (
                     WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
                     ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
                 END - ex.charges,
+                'gross_profit', CASE te.direction
+                    WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
+                    ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
+                END,
                 'r_multiple', CASE WHEN te.risk != 0 THEN 
                     ((CASE te.direction
                         WHEN 'LONG' THEN (ex.exit_price - te.entry_price) 
@@ -30,8 +34,7 @@ WITH exit_aggregates AS (
                     ((CASE te.direction
                         WHEN 'LONG' THEN (ex.exit_price - te.entry_price)
                         ELSE (te.entry_price - ex.exit_price)
-                    END) - (ex.charges/ex.quantity_exited)) / 
-                    (te.entry_price - te.stop_loss) END
+                    END) / (te.entry_price - te.stop_loss)) END
             ) ORDER BY ex.exit_date
         ) AS exit_records,
         SUM(ex.quantity_exited) AS total_exited,
@@ -40,7 +43,8 @@ WITH exit_aggregates AS (
                 WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
                 ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
             END - ex.charges
-        ) AS realized_profit
+        ) AS realized_profit,
+        SUM(ex.exit_price * ex.quantity_exited) AS total_exit_price
     FROM trade_exits ex
     JOIN trade_entries te ON te.id = ex.entry_id
     GROUP BY ex.entry_id, ex.journal_id
@@ -91,7 +95,7 @@ SELECT
     (ea.realized_profit - te.charges) AS net_profit,
     EXTRACT(DAY FROM NOW() - te.entry_date) AS days_open,
     CASE WHEN ea.total_exited > 0 THEN
-        (SELECT AVG(exit_price) FROM trade_exits WHERE entry_id = te.id)
+        ea.total_exit_price / ea.total_exited
     END AS avg_exit_price,
     -- Capital Metrics
     fm.capital_deployed,
