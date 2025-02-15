@@ -85,20 +85,23 @@ year_start AS (
     SELECT DISTINCT ON (sub.journal_id, sub.fiscal_year)
         sub.journal_id,
         sub.fiscal_year,
-        LAST_VALUE(
-            sub.cumulative_capital + sub.cumulative_profit
-        ) OVER (
+        LAST_VALUE(sub.cumulative_capital) OVER (
             PARTITION BY sub.journal_id, sub.fiscal_year
             ORDER BY sub.metric_date
             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-        ) AS starting_account_value
+        ) AS starting_capital,
+        LAST_VALUE(sub.cumulative_profit) OVER (
+            PARTITION BY sub.journal_id, sub.fiscal_year
+            ORDER BY sub.metric_date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+        ) AS previous_year_profit
     FROM (
         SELECT 
             ds.journal_id,
             DATE_TRUNC('year', ds.metric_date) + INTERVAL '1 year' AS fiscal_year,
             ds.metric_date,
             SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (
-                PARTITION BY ds.journal_id, DATE_TRUNC('year', ds.metric_date)
+                PARTITION BY ds.journal_id 
                 ORDER BY ds.metric_date
             ) AS cumulative_capital,
             SUM(COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0))) OVER (
@@ -110,6 +113,7 @@ year_start AS (
         LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
         LEFT JOIN entry_dates ed USING (metric_date, journal_id)
     ) sub
+    WHERE sub.metric_date < DATE_TRUNC('year', sub.fiscal_year)
     ORDER BY sub.journal_id, sub.fiscal_year, sub.metric_date DESC
 ),
 capital_calcs AS (
@@ -153,8 +157,8 @@ SELECT
     cc.cumulative_capital AS capital_deployed,
     CASE
         WHEN DATE_TRUNC('year', ds.metric_date) = ds.metric_date 
-        THEN cc.cumulative_capital + cnp.cumulative_net_profit
-        ELSE COALESCE(ys.starting_account_value, cc.cumulative_capital)
+        THEN ys.starting_capital + ys.previous_year_profit
+        ELSE COALESCE(ys.starting_capital + ys.previous_year_profit, cc.cumulative_capital)
     END AS starting_account_value,
     CASE 
         WHEN tm.closed_orders > 0 
