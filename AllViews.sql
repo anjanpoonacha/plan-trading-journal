@@ -190,7 +190,7 @@ WITH date_series AS (
 trade_metrics AS (
   SELECT
     exit_date::date AS metric_date,
-    te.journal_id,
+    te.journal_id,  -- Ensure this is included
     SUM(
       CASE te.direction
         WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
@@ -228,11 +228,12 @@ entry_dates AS (
     te.journal_id,
     entry_date::date AS metric_date,
     COUNT(*) AS new_orders
-  FROM trade_entries
+  FROM trade_entries te
   GROUP BY 1, 2
 )
 SELECT
   ds.metric_date,
+  COALESCE(tm.journal_id, ed.journal_id, ff.journal_id) AS journal_id,  -- Ensure this is included
   COALESCE(tm.gross_profit, 0) AS profit,
   COALESCE(tm.total_charges, 0) AS charges,
   COALESCE(tm.gross_profit, 0) - COALESCE(tm.total_charges, 0) AS net_profit,
@@ -264,10 +265,10 @@ LEFT JOIN trade_metrics tm ON ds.metric_date = tm.metric_date
 LEFT JOIN fund_flow ff ON ds.metric_date = ff.metric_date
 LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date;
 
-CREATE INDEX CONCURRENTLY idx_dm_journal_date ON daily_metrics(journal_id, metric_date);
+CREATE INDEX idx_dm_journal_date ON daily_metrics(journal_id, metric_date);
 
 CREATE OR REPLACE FUNCTION get_summary_metrics(
-  period_type TEXT DEFAULT 'month', 
+  period_kind TEXT,
   journal_id UUID
 )
 RETURNS TABLE (
@@ -282,6 +283,10 @@ RETURNS TABLE (
   roi_pct NUMERIC
 ) AS $$
 BEGIN
+  IF journal_id IS NULL THEN
+    RAISE EXCEPTION 'journal_id cannot be null';
+  END IF;
+
   RETURN QUERY EXECUTE format('
     SELECT
       date_trunc(%L, dm.metric_date)::date AS period_start,
@@ -297,8 +302,8 @@ BEGIN
     WHERE dm.journal_id = $1
     GROUP BY 1
     ORDER BY 1 DESC',
-    period_type,
-    period_type
+    period_kind,
+    period_kind
   ) USING journal_id;
 END;
 $$ LANGUAGE plpgsql;
