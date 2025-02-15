@@ -191,13 +191,7 @@ trade_metrics AS (
   SELECT
     exit_date::date AS metric_date,
     te.journal_id,  -- Ensure this is included
-    SUM(
-      CASE te.direction
-        WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
-        ELSE (te.entry_price - exit_price) * quantity_exited
-      END
-    ) AS gross_profit,
-    SUM(ex.charges + te.charges) AS total_charges,
+    SUM(ex.charges) AS total_exit_charges,
     COUNT(DISTINCT te.id) FILTER (WHERE exit_date IS NOT NULL) AS closed_orders,
     COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = exit_date::date) AS new_orders,
     SUM(EXTRACT(DAY FROM ex.exit_date - te.entry_date)) AS total_holding_days,
@@ -227,16 +221,16 @@ entry_dates AS (
   SELECT 
     te.journal_id,
     entry_date::date AS metric_date,
-    COUNT(*) AS new_orders
+    COUNT(*) AS new_orders,
+    SUM(te.charges) AS entry_charges
   FROM trade_entries te
   GROUP BY 1, 2
 )
 SELECT
   ds.metric_date,
   COALESCE(tm.journal_id, ed.journal_id, ff.journal_id) AS journal_id,  -- Ensure this is included
-  COALESCE(tm.gross_profit, 0) AS profit,
-  COALESCE(tm.total_charges, 0) AS charges,
-  COALESCE(tm.gross_profit, 0) - COALESCE(tm.total_charges, 0) AS net_profit,
+  COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0) AS charges,
+  COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0) AS net_profit,
   COALESCE(ed.new_orders, 0) AS new_orders_length,
   COALESCE(tm.closed_orders, 0) AS closed_orders_length,
   COALESCE(tm.partially_closed, 0) AS partially_closed_orders,
@@ -244,7 +238,7 @@ SELECT
   COALESCE(ff.withdrawals, 0) AS withdrawals,
   SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (ORDER BY ds.metric_date) AS capital,
   SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (ORDER BY ds.metric_date) +
-  SUM(COALESCE(tm.gross_profit - tm.total_charges, 0)) OVER (ORDER BY ds.metric_date) AS account_value,
+  SUM(COALESCE(tm.total_exit_charges, 0)) OVER (ORDER BY ds.metric_date) AS account_value,
   CASE WHEN tm.closed_orders > 0 
     THEN (tm.winning_trades::float / tm.closed_orders) * 100 
     ELSE 0 END AS win_rate,
@@ -252,7 +246,7 @@ SELECT
     THEN tm.total_holding_days / tm.closed_orders 
     ELSE 0 END AS avg_holding_days,
   CASE WHEN tm.closed_orders > 0 
-    THEN (SUM(tm.gross_profit) OVER () / tm.closed_orders) 
+    THEN (SUM(tm.total_exit_charges) OVER () / tm.closed_orders) 
     ELSE 0 END AS avg_rpt,
   CASE WHEN tm.gain_days > 0 
     THEN tm.gain_days / tm.winning_trades 
