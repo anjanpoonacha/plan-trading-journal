@@ -1,3 +1,8 @@
+drop materialized view if exists unified_trade_metrics;
+drop index if exists idx_unified_journal;
+drop index if exists idx_unified_user;
+drop index if exists idx_unified_instrument;
+
 CREATE MATERIALIZED VIEW unified_trade_metrics AS
 WITH exit_aggregates AS (
     SELECT 
@@ -31,14 +36,13 @@ WITH exit_aggregates AS (
 fund_metrics AS (
     SELECT
         f.journal_id,
-        te.entry_date,
-        SUM(f.amount) FILTER (WHERE f.type = 'DEPOSIT' AND f.transaction_date <= te.entry_date) -
-        SUM(f.amount) FILTER (WHERE f.type = 'WITHDRAW' AND f.transaction_date <= te.entry_date) AS capital_deployed,
-        SUM(f.amount) FILTER (WHERE f.type = 'DEPOSIT') AS total_deposits,
-        SUM(f.amount) FILTER (WHERE f.type = 'WITHDRAW') AS total_withdrawals
+        f.transaction_date,
+        SUM(amount) FILTER (WHERE type = 'DEPOSIT') OVER w AS cumulative_deposits,
+        SUM(amount) FILTER (WHERE type = 'WITHDRAW') OVER w AS cumulative_withdrawals,
+        SUM(amount) FILTER (WHERE type = 'DEPOSIT') OVER w -
+        SUM(amount) FILTER (WHERE type = 'WITHDRAW') OVER w AS capital_deployed
     FROM funds f
-    JOIN trade_entries te ON f.journal_id = te.journal_id
-    GROUP BY f.journal_id, te.entry_date
+    WINDOW w AS (PARTITION BY journal_id ORDER BY transaction_date RANGE UNBOUNDED PRECEDING)
 ),
 realized_profits AS (
     SELECT
@@ -62,14 +66,13 @@ SELECT
     i.last_price AS cmp,
     ea.exit_records,
     ea.realized_profit,
-    fm.total_deposits,
-    fm.total_withdrawals,
+    fm.cumulative_deposits AS total_deposits,
+    fm.cumulative_withdrawals AS total_withdrawals,
     (te.quantity - COALESCE(ea.total_exited, 0)) AS open_quantity,
     (te.quantity - COALESCE(ea.total_exited, 0)) * te.entry_price AS current_exposure,
     CASE te.direction
-        WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price)
-        ELSE (te.entry_price - te.current_stop_loss)
-    END * (te.quantity - COALESCE(ea.total_exited, 0)) AS open_risk,
+        WHEN 'LONG' THEN 1 ELSE -1
+    END * (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(ea.total_exited, 0)) AS open_risk,
     (te.quantity * te.entry_price) / NULLIF(fm.capital_deployed, 0) AS exposure_pct,
     (CASE te.direction
         WHEN 'LONG' THEN (te.stop_loss - te.entry_price)
@@ -83,18 +86,30 @@ SELECT
     -- Capital Metrics
     fm.capital_deployed,
     (fm.capital_deployed + rp.historical_profit) AS starting_account_value,
-    (ea.realized_profit - te.charges) / NULLIF(fm.capital_deployed, 0) * 100 AS rocd,
+    COALESCE((ea.realized_profit - te.charges) / NULLIF(fm.capital_deployed, 0), 0) * 100 AS rocd,
     (ea.realized_profit - te.charges) / NULLIF(
-        (SELECT capital_deployed + historical_profit 
+        COALESCE((SELECT capital_deployed + historical_profit 
          FROM realized_profits rp2 
-         WHERE rp2.id = te.id)
-    , 0) * 100 AS ros_v
+         WHERE rp2.id = te.id), fm.capital_deployed), 0) * 100 AS ros_v
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id AND te.journal_id = ea.journal_id
-LEFT JOIN fund_metrics fm ON te.journal_id = fm.journal_id AND te.entry_date = fm.entry_date
+LEFT JOIN LATERAL (
+    SELECT 
+        capital_deployed,
+        cumulative_deposits,
+        cumulative_withdrawals
+    FROM fund_metrics
+    WHERE journal_id = te.journal_id
+        AND transaction_date <= te.entry_date
+    ORDER BY transaction_date DESC
+    LIMIT 1
+) fm ON true
 LEFT JOIN realized_profits rp ON te.id = rp.id;
 
 CREATE INDEX idx_unified_journal ON unified_trade_metrics(journal_id);
 CREATE INDEX idx_unified_user ON unified_trade_metrics(user_id);
 CREATE INDEX idx_unified_instrument ON unified_trade_metrics(instrument_id);
+
+
+
