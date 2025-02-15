@@ -108,7 +108,7 @@ VALUES (
       inserts.push(`
 INSERT INTO trade_entries (
   id, user_id, instrument_id, direction, quantity, 
-  entry_price, stop_loss, entry_date, journal_id
+  entry_price, stop_loss, entry_date, journal_id, charges
 ) VALUES (
   ${escape(order.id)},
   '${USER_ID}',
@@ -118,7 +118,8 @@ INSERT INTO trade_entries (
   ${sqlValue(order.price, true)},
   ${sqlValue(order.stoploss, true)},
   ${toSqlDate(order.date)},
-  ${escape(order.journalId)}
+  ${escape(order.journalId)},
+  ${sqlValue(order.charges, true)}
 );`);
 
       // 4. Insert Trade Exits (Close Orders)

@@ -63,7 +63,7 @@ VALUES (
 
 INSERT INTO trade_entries (
   id, user_id, instrument_id, direction, quantity, 
-  entry_price, stop_loss, entry_date, journal_id
+  entry_price, stop_loss, entry_date, journal_id, charges
 ) VALUES (
   '80f85cc2-5ebd-4bb4-a800-483c2ca88fb7',
   '8D9B81B5-A028-4643-8CEF-645495AFAD55',
@@ -73,7 +73,8 @@ INSERT INTO trade_entries (
   100,
   90,
   '2024-01-01 00:00:00',
-  'cd03b578-8769-47db-a51d-be9be4584bac'
+  'cd03b578-8769-47db-a51d-be9be4584bac',
+  48.38
 );
 
 
@@ -124,7 +125,7 @@ INSERT INTO trade_exits (
 
 INSERT INTO trade_entries (
   id, user_id, instrument_id, direction, quantity, 
-  entry_price, stop_loss, entry_date, journal_id
+  entry_price, stop_loss, entry_date, journal_id, charges
 ) VALUES (
   '1a39169f-2986-45a9-8c9f-e3f2b9c918d7',
   '8D9B81B5-A028-4643-8CEF-645495AFAD55',
@@ -134,7 +135,8 @@ INSERT INTO trade_entries (
   100,
   90,
   '2024-01-02 00:00:00',
-  'cd03b578-8769-47db-a51d-be9be4584bac'
+  'cd03b578-8769-47db-a51d-be9be4584bac',
+  12.39
 );
 
 
@@ -170,7 +172,7 @@ INSERT INTO trade_exits (
 
 INSERT INTO trade_entries (
   id, user_id, instrument_id, direction, quantity, 
-  entry_price, stop_loss, entry_date, journal_id
+  entry_price, stop_loss, entry_date, journal_id, charges
 ) VALUES (
   '53c9d428-8e73-4317-9412-8402513d3647',
   '8D9B81B5-A028-4643-8CEF-645495AFAD55',
@@ -180,7 +182,8 @@ INSERT INTO trade_entries (
   100,
   105,
   '2024-12-01 00:00:00',
-  'cd03b578-8769-47db-a51d-be9be4584bac'
+  'cd03b578-8769-47db-a51d-be9be4584bac',
+  23.84
 );
 
 
@@ -231,7 +234,7 @@ INSERT INTO trade_exits (
 
 INSERT INTO trade_entries (
   id, user_id, instrument_id, direction, quantity, 
-  entry_price, stop_loss, entry_date, journal_id
+  entry_price, stop_loss, entry_date, journal_id, charges
 ) VALUES (
   'bf775567-5da5-43ff-9e12-33f9cf4e812c',
   '8D9B81B5-A028-4643-8CEF-645495AFAD55',
@@ -241,13 +244,14 @@ INSERT INTO trade_entries (
   100,
   105,
   '2025-02-14 00:00:00',
-  'cd03b578-8769-47db-a51d-be9be4584bac'
+  'cd03b578-8769-47db-a51d-be9be4584bac',
+  118.24
 );
 
 
 INSERT INTO trade_entries (
   id, user_id, instrument_id, direction, quantity, 
-  entry_price, stop_loss, entry_date, journal_id
+  entry_price, stop_loss, entry_date, journal_id, charges
 ) VALUES (
   '0474a005-8bdb-4141-b972-83d35c2ea5f0',
   '8D9B81B5-A028-4643-8CEF-645495AFAD55',
@@ -257,7 +261,8 @@ INSERT INTO trade_entries (
   100,
   98,
   '2025-02-14 00:00:00',
-  'cd03b578-8769-47db-a51d-be9be4584bac'
+  'cd03b578-8769-47db-a51d-be9be4584bac',
+  12.39
 );
 
 

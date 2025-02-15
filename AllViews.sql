@@ -145,8 +145,8 @@ SELECT
   te.entry_price,
   te.stop_loss,
   CASE WHEN te.direction = 'LONG' 
-    THEN (te.stop_loss - te.entry_price)/te.entry_price
-    ELSE (te.entry_price - te.stop_loss)/te.entry_price 
+    THEN (te.entry_price - te.stop_loss)/te.entry_price
+    ELSE (te.stop_loss - te.entry_price)/te.entry_price 
   END * 100 AS sl_pct,
   te.exposure AS position_size,
   (te.exposure / NULLIF(tav.capital_deployed + tav.realized_profits, 0)) * 100 AS position_size_pct,
@@ -157,7 +157,7 @@ SELECT
   ea.total_exited AS exited_quantity,
   (ea.total_exited / te.quantity) * 100 AS exit_pct,
   ea.latest_exit_date,
-  (ea.position_net_profit - te.charges) AS net_profit,
+  (ea.position_net_profit) AS net_profit,
   (ea.position_net_profit - te.charges) / NULLIF(tav.capital_deployed, 0) * 100 AS rocd,
   (tav.capital_deployed + tav.realized_profits) AS starting_account,
   (ea.position_net_profit - te.charges) / NULLIF(tav.capital_deployed + tav.realized_profits, 0) * 100 AS ros_v,
@@ -171,7 +171,10 @@ SELECT
        THEN ea.total_exit_price / ea.total_exited 
   END AS exit_price,
   ea.exit_records,
-  (ea.total_exit_price - te.entry_price * ea.total_exited) / te.entry_price * 100 AS gain_pct
+  (CASE WHEN te.direction = 'SHORT' 
+        THEN (te.entry_price - (ea.total_exit_price/ea.total_exited)) 
+        ELSE ((ea.total_exit_price/ea.total_exited) - te.entry_price) 
+     END / te.entry_price) * 100 AS gain_pct
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 JOIN trade_account_values tav ON te.id = tav.id
