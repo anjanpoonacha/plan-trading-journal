@@ -10,6 +10,7 @@ WITH exit_aggregates AS (
         ex.journal_id,
         JSONB_AGG(
             jsonb_build_object(
+                'id', ex.id,
                 'exit_date', ex.exit_date,
                 'exit_price', ex.exit_price,
                 'quantity_exited', ex.quantity_exited,
@@ -19,7 +20,18 @@ WITH exit_aggregates AS (
                 'profit', CASE te.direction
                     WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
                     ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
-                END - ex.charges
+                END - ex.charges,
+                'r_multiple', CASE WHEN te.risk != 0 THEN 
+                    ((CASE te.direction
+                        WHEN 'LONG' THEN (ex.exit_price - te.entry_price) 
+                        ELSE (te.entry_price - ex.exit_price)
+                    END * ex.quantity_exited) - ex.charges) / te.risk END,
+                'r_multiple_per_unit', CASE WHEN (te.entry_price - te.stop_loss) != 0 THEN
+                    ((CASE te.direction
+                        WHEN 'LONG' THEN (ex.exit_price - te.entry_price)
+                        ELSE (te.entry_price - ex.exit_price)
+                    END) - (ex.charges/ex.quantity_exited)) / 
+                    (te.entry_price - te.stop_loss) END
             ) ORDER BY ex.exit_date
         ) AS exit_records,
         SUM(ex.quantity_exited) AS total_exited,
@@ -73,11 +85,9 @@ SELECT
     CASE te.direction
         WHEN 'LONG' THEN 1 ELSE -1
     END * (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(ea.total_exited, 0)) AS open_risk,
-    (te.quantity * te.entry_price) / NULLIF(fm.capital_deployed, 0) AS exposure_pct,
-    (CASE te.direction
-        WHEN 'LONG' THEN (te.stop_loss - te.entry_price)
-        ELSE (te.entry_price - te.stop_loss)
-    END * te.quantity) / NULLIF(fm.capital_deployed, 0) AS risk_pct,
+    (te.quantity * te.entry_price) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0) * 100 AS position_size_pct,
+    (te.quantity * te.entry_price) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0) AS exposure_pct,
+    (te.risk / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0)) AS risk_pct,
     (ea.realized_profit - te.charges) AS net_profit,
     EXTRACT(DAY FROM NOW() - te.entry_date) AS days_open,
     CASE WHEN ea.total_exited > 0 THEN
@@ -88,9 +98,44 @@ SELECT
     COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0) AS starting_account_value,
     COALESCE((ea.realized_profit - te.charges) / NULLIF(COALESCE(fm.capital_deployed, 0), 0), 0) * 100 AS rocd,
     COALESCE(
-        (ea.realized_profit - te.charges) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0),
+        (ea.realized_profit - te.charges) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0),
         0
-    ) * 100 AS ros_v
+    )) * 100 AS ros_v,
+    CASE te.direction
+        WHEN 'LONG' THEN (te.entry_price - te.stop_loss)/te.entry_price
+        ELSE (te.stop_loss - te.entry_price)/te.entry_price
+    END * 100 AS sl_pct,
+    CASE te.direction
+        WHEN 'LONG' THEN (te.current_stop_loss - te.entry_price)/te.entry_price
+        ELSE (te.entry_price - te.current_stop_loss)/te.entry_price
+    END * 100 AS current_sl_pct,
+    (COALESCE(ea.total_exited, 0) / te.quantity) * 100 AS exit_pct,
+    (COALESCE(ea.realized_profit, 0) - te.charges) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0) * 100 AS account_gain_pct,
+    (te.risk / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0)) * 100 AS rpt_pct,
+    -- RR Calculation
+    -- Version 1: Based on price percentages
+    (COALESCE(
+    (SELECT AVG((exit_record->>'gain_pct')::numeric) 
+     FROM jsonb_array_elements(ea.exit_records) AS exit_record),
+    0
+) / NULLIF(
+    CASE te.direction
+        WHEN 'LONG' THEN (te.entry_price - te.stop_loss)/te.entry_price
+        ELSE (te.stop_loss - te.entry_price)/te.entry_price
+    END, 
+    0
+)) AS rr_price,
+    -- Version 2: Based on monetary values
+    (COALESCE(ea.realized_profit, 0) - te.charges) / NULLIF(te.risk, 0) AS rr_monetary,
+    CASE WHEN (te.entry_price - te.stop_loss) != 0 THEN
+        (SELECT AVG(
+            (CASE te.direction
+                WHEN 'LONG' THEN ((exit_record->>'exit_price')::numeric - te.entry_price)
+                ELSE (te.entry_price - (exit_record->>'exit_price')::numeric)
+            END * (exit_record->>'quantity_exited')::numeric - (exit_record->>'charges')::numeric
+            ) / ((te.entry_price - te.stop_loss) * (exit_record->>'quantity_exited')::numeric)
+        ) FROM jsonb_array_elements(ea.exit_records) AS exit_record)
+    END AS r_multiple_per_unit
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id AND te.journal_id = ea.journal_id
