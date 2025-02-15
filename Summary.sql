@@ -2,15 +2,16 @@ drop materialized view if exists daily_metrics cascade;
 
 CREATE MATERIALIZED VIEW public.daily_metrics AS
 WITH date_series AS (
-    SELECT 
-        all_activities.activity_date::date AS metric_date,
-        all_activities.journal_id
+    SELECT DISTINCT
+        activity_date::date AS metric_date,
+        journal_id
     FROM (
         SELECT entry_date AS activity_date, journal_id FROM trade_entries
         UNION ALL
         SELECT exit_date, journal_id FROM trade_exits
+        UNION ALL
+        SELECT transaction_date, journal_id FROM funds
     ) all_activities
-    GROUP BY 1, 2
 ),
 exit_cumulatives AS (
     SELECT 
@@ -72,6 +73,45 @@ entry_dates AS (
         SUM(charges) AS entry_charges
     FROM trade_entries
     GROUP BY 1, 2
+),
+year_start AS (
+    SELECT DISTINCT ON (sub.journal_id, sub.fiscal_year)
+        sub.journal_id,
+        sub.fiscal_year,
+        LAST_VALUE(
+            sub.capital + sub.total_charges
+        ) OVER (
+            PARTITION BY sub.journal_id, sub.fiscal_year
+            ORDER BY sub.metric_date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+        ) AS starting_account_value
+    FROM (
+        SELECT 
+            ds.journal_id,
+            DATE_TRUNC('year', ds.metric_date) AS fiscal_year,
+            ds.metric_date,
+            SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER w AS capital,
+            SUM(COALESCE(tm.total_exit_charges, 0)) OVER w AS total_charges
+        FROM date_series ds
+        LEFT JOIN fund_flow ff USING (metric_date, journal_id)
+        LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
+        WINDOW w AS (PARTITION BY ds.journal_id ORDER BY ds.metric_date)
+    ) sub
+    WHERE sub.metric_date < DATE_TRUNC('year', sub.metric_date) + INTERVAL '1 year'
+    ORDER BY sub.journal_id, sub.fiscal_year, sub.metric_date DESC
+),
+capital_calcs AS (
+    SELECT
+        ds.metric_date,
+        ds.journal_id,
+        SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (
+            PARTITION BY ds.journal_id 
+            ORDER BY ds.metric_date
+        ) AS capital_deployed
+    FROM date_series ds
+    LEFT JOIN fund_flow ff 
+        ON ds.metric_date = ff.metric_date 
+        AND ds.journal_id = ff.journal_id
 )
 SELECT
     ds.metric_date,
@@ -81,14 +121,7 @@ SELECT
     COALESCE(ed.new_orders, 0) AS new_orders_length,
     COALESCE(tm.closed_orders, 0) AS closed_orders_length,
     COALESCE(tm.partially_closed, 0) AS partially_closed_orders,
-    SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (
-        ORDER BY ds.metric_date
-    ) AS capital,
-    SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (
-        ORDER BY ds.metric_date
-    ) + SUM(COALESCE(tm.total_exit_charges, 0)) OVER (
-        ORDER BY ds.metric_date
-    ) AS account_value,
+    cc.capital_deployed,
     CASE 
         WHEN tm.closed_orders > 0 
         THEN (tm.winning_trades::FLOAT / tm.closed_orders) * 100 
@@ -123,4 +156,7 @@ LEFT JOIN fund_flow ff
     AND ds.journal_id = ff.journal_id
 LEFT JOIN entry_dates ed 
     ON ds.metric_date = ed.metric_date 
-    AND ds.journal_id = ed.journal_id;
+    AND ds.journal_id = ed.journal_id
+LEFT JOIN capital_calcs cc 
+    ON ds.metric_date = cc.metric_date 
+    AND ds.journal_id = cc.journal_id
