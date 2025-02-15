@@ -178,19 +178,22 @@ LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id;
 
 CREATE MATERIALIZED VIEW daily_metrics AS
 WITH date_series AS (
-  SELECT DISTINCT activity_date::date AS metric_date
+  SELECT 
+    activity_date::date AS metric_date,
+    journal_id
   FROM (
-    SELECT entry_date AS activity_date FROM trade_entries
+    SELECT entry_date AS activity_date, journal_id FROM trade_entries
     UNION ALL
-    SELECT exit_date FROM trade_exits
+    SELECT exit_date, journal_id FROM trade_exits
     UNION ALL
-    SELECT transaction_date FROM funds
+    SELECT transaction_date, journal_id FROM funds
   ) all_activities
+  GROUP BY 1, 2
 ),
 trade_metrics AS (
   SELECT
-    exit_date::date AS metric_date,
-    te.journal_id,  -- Ensure this is included
+    ex.exit_date::date AS metric_date,
+    ex.journal_id,
     SUM(ex.charges) AS total_exit_charges,
     COUNT(DISTINCT te.id) FILTER (WHERE exit_date IS NOT NULL) AS closed_orders,
     COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = exit_date::date) AS new_orders,
@@ -206,12 +209,12 @@ trade_metrics AS (
     COUNT(DISTINCT te.id) FILTER (WHERE ex.quantity_exited < te.quantity) AS partially_closed
   FROM trade_exits ex
   JOIN trade_entries te ON ex.entry_id = te.id
-  GROUP BY 1, 2
+  GROUP BY ex.exit_date::date, ex.journal_id
 ),
 fund_flow AS (
   SELECT
-    journal_id,
     transaction_date::date AS metric_date,
+    journal_id,
     SUM(amount) FILTER (WHERE type = 'DEPOSIT') AS deposits,
     SUM(amount) FILTER (WHERE type = 'WITHDRAW') AS withdrawals
   FROM funds
@@ -219,8 +222,8 @@ fund_flow AS (
 ),
 entry_dates AS (
   SELECT 
-    te.journal_id,
     entry_date::date AS metric_date,
+    journal_id,
     COUNT(*) AS new_orders,
     SUM(te.charges) AS entry_charges
   FROM trade_entries te
@@ -228,7 +231,7 @@ entry_dates AS (
 )
 SELECT
   ds.metric_date,
-  COALESCE(tm.journal_id, ed.journal_id, ff.journal_id) AS journal_id,  -- Ensure this is included
+  ds.journal_id,
   COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0) AS charges,
   COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0) AS net_profit,
   COALESCE(ed.new_orders, 0) AS new_orders_length,
@@ -255,8 +258,12 @@ SELECT
     THEN tm.loss_days / (tm.closed_orders - tm.winning_trades) 
     ELSE 0 END AS avg_loss_days
 FROM date_series ds
-LEFT JOIN trade_metrics tm ON ds.metric_date = tm.metric_date
-LEFT JOIN fund_flow ff ON ds.metric_date = ff.metric_date
+LEFT JOIN trade_metrics tm 
+  ON ds.metric_date = tm.metric_date 
+  AND ds.journal_id = tm.journal_id
+LEFT JOIN fund_flow ff 
+  ON ds.metric_date = ff.metric_date 
+  AND ds.journal_id = ff.journal_id
 LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date;
 
 CREATE INDEX idx_dm_journal_date ON daily_metrics(journal_id, metric_date);
