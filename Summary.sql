@@ -14,6 +14,12 @@ WITH date_series AS (
     ) all_activities
     GROUP BY 1, 2
 ),
+exit_cumulatives AS (
+    SELECT 
+        ex.*,
+        SUM(ex.quantity_exited) OVER (PARTITION BY ex.entry_id ORDER BY ex.exit_date) AS cumulative_exited
+    FROM trade_exits ex
+),
 trade_metrics AS (
     SELECT
         ex.exit_date::date AS metric_date,
@@ -44,8 +50,10 @@ trade_metrics AS (
                 THEN EXTRACT(DAY FROM ex.exit_date - te.entry_date)
             END
         ) AS loss_days,
-        COUNT(DISTINCT te.id) FILTER (WHERE ex.quantity_exited < te.quantity) AS partially_closed
-    FROM trade_exits ex
+        COUNT(DISTINCT te.id) FILTER (
+            WHERE ex.cumulative_exited < te.quantity
+        ) AS partially_closed
+    FROM exit_cumulatives ex
     JOIN trade_entries te ON ex.entry_id = te.id
     GROUP BY 1, 2
 ),
