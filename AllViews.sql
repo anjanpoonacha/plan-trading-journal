@@ -195,7 +195,7 @@ trade_metrics AS (
       CASE te.direction
         WHEN 'LONG' THEN (exit_price - te.entry_price) * quantity_exited
         ELSE (te.entry_price - exit_price) * quantity_exited
-      END - ex.charges - te.charges
+      END
     ) AS gross_profit,
     SUM(ex.charges + te.charges) AS total_charges,
     COUNT(DISTINCT te.id) FILTER (WHERE exit_date IS NOT NULL) AS closed_orders,
