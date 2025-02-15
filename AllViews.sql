@@ -105,7 +105,7 @@ WITH exit_aggregates AS (
       CASE WHEN te.direction = 'LONG' 
         THEN quantity_exited * (exit_price - te.entry_price)
         ELSE quantity_exited * (te.entry_price - exit_price)
-      END - trade_exits.charges
+      END - trade_exits.charges - te.charges
     ) AS position_net_profit,
     SUM(trade_exits.charges) AS total_exit_charges
   FROM trade_exits
@@ -127,7 +127,7 @@ trade_account_values AS (
         CASE te2.direction
           WHEN 'LONG' THEN (ex.exit_price - te2.entry_price) * ex.quantity_exited
           ELSE (te2.entry_price - ex.exit_price) * ex.quantity_exited
-        END - ex.charges
+        END - ex.charges - te2.charges
       ), 0)
      FROM trade_entries te2
      LEFT JOIN trade_exits ex ON ex.entry_id = te2.id
@@ -157,10 +157,16 @@ SELECT
   ea.total_exited AS exited_quantity,
   (ea.total_exited / te.quantity) * 100 AS exit_pct,
   ea.latest_exit_date,
-  (ea.position_net_profit) AS net_profit,
+  ea.position_net_profit AS net_profit,
   (ea.position_net_profit - te.charges) / NULLIF(tav.capital_deployed, 0) * 100 AS rocd,
-  (tav.capital_deployed + tav.realized_profits) AS starting_account,
-  (ea.position_net_profit - te.charges) / NULLIF(tav.capital_deployed + tav.realized_profits, 0) * 100 AS ros_v,
+  (ea.position_net_profit - te.charges) / NULLIF(
+    (SELECT capital_deployed FROM yearly_starting_values WHERE journal_id = te.journal_id AND year = EXTRACT(YEAR FROM te.entry_date))
+    + (SELECT SUM(amount) FILTER (WHERE type = 'DEPOSIT') - SUM(amount) FILTER (WHERE type = 'WITHDRAW') 
+       FROM funds 
+       WHERE journal_id = te.journal_id 
+         AND EXTRACT(YEAR FROM transaction_date) = EXTRACT(YEAR FROM te.entry_date)
+         AND transaction_date <= te.entry_date)
+  , 0) * 100 AS ros_v,
   (tav.capital_deployed + tav.realized_profits) AS account_value,
   EXTRACT(DAY FROM COALESCE(ea.latest_exit_date, CURRENT_DATE) - te.entry_date) AS days,
   CASE WHEN te.risk != 0 
@@ -178,7 +184,9 @@ SELECT
 FROM trade_entries te
 JOIN instruments i ON te.instrument_id = i.id
 JOIN trade_account_values tav ON te.id = tav.id
-LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id;
+LEFT JOIN exit_aggregates ea ON te.id = ea.entry_id
+WHERE te.entry_date BETWEEN period_start AND period_end
+   OR ex.exit_date BETWEEN period_start AND period_end;
 
 CREATE MATERIALIZED VIEW daily_metrics AS
 WITH date_series AS (
@@ -274,7 +282,9 @@ LEFT JOIN trade_metrics tm
 LEFT JOIN fund_flow ff 
   ON ds.metric_date = ff.metric_date 
   AND ds.journal_id = ff.journal_id
-LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date;
+LEFT JOIN entry_dates ed ON ds.metric_date = ed.metric_date
+WHERE te.entry_date BETWEEN period_start AND period_end
+   OR ex.exit_date BETWEEN period_start AND period_end;
 
 CREATE INDEX idx_dm_journal_date ON daily_metrics(journal_id, metric_date);
 
