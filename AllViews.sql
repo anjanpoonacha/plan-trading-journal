@@ -6,6 +6,7 @@ drop materialized view if exists summary_metrics cascade;
 drop materialized view if exists daily_metrics cascade;
 drop index if exists idx_dm_journal_date;
 drop function if exists get_summary_metrics(TEXT, UUID);
+drop function if exists get_summary_metrics(UUID, TEXT);
 
 CREATE MATERIALIZED VIEW dashboard_metrics AS
 SELECT
@@ -194,6 +195,12 @@ trade_metrics AS (
   SELECT
     ex.exit_date::date AS metric_date,
     ex.journal_id,
+    SUM(
+      CASE te.direction
+        WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
+        ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
+      END
+    ) AS gross_profit,
     SUM(ex.charges) AS total_exit_charges,
     COUNT(DISTINCT te.id) FILTER (WHERE exit_date IS NOT NULL) AS closed_orders,
     COUNT(DISTINCT te.id) FILTER (WHERE te.entry_date::date = exit_date::date) AS new_orders,
@@ -233,7 +240,7 @@ SELECT
   ds.metric_date,
   ds.journal_id,
   COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0) AS charges,
-  COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0) AS net_profit,
+  COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0)) AS net_profit,
   COALESCE(ed.new_orders, 0) AS new_orders_length,
   COALESCE(tm.closed_orders, 0) AS closed_orders_length,
   COALESCE(tm.partially_closed, 0) AS partially_closed_orders,
@@ -292,7 +299,7 @@ BEGIN
     SELECT
       date_trunc(%L, dm.metric_date)::date AS period_start,
       %L AS period_type,
-      SUM(dm.profit) AS gross_profit,
+      SUM(dm.gross_profit) AS gross_profit,
       SUM(dm.charges) AS charges,
       SUM(dm.net_profit) AS net_profit,
       SUM(dm.deposits) - SUM(dm.withdrawals) AS net_fund_flow,
