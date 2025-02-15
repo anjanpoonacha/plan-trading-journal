@@ -2,16 +2,23 @@ drop materialized view if exists daily_metrics cascade;
 
 CREATE MATERIALIZED VIEW public.daily_metrics AS
 WITH date_series AS (
-    SELECT DISTINCT
-        activity_date::date AS metric_date,
+    SELECT 
+        metric_date,
         journal_id
     FROM (
-        SELECT entry_date AS activity_date, journal_id FROM trade_entries
-        UNION ALL
-        SELECT exit_date, journal_id FROM trade_exits
-        UNION ALL
-        SELECT transaction_date, journal_id FROM funds
-    ) all_activities
+        SELECT 
+            activity_date::date AS metric_date,
+            journal_id,
+            ROW_NUMBER() OVER (PARTITION BY activity_date::date, journal_id ORDER BY activity_date) AS rn
+        FROM (
+            SELECT entry_date AS activity_date, journal_id FROM trade_entries
+            UNION ALL
+            SELECT exit_date, journal_id FROM trade_exits
+            UNION ALL
+            SELECT transaction_date, journal_id FROM funds
+        ) all_activities
+    ) sub
+    WHERE rn = 1
 ),
 exit_cumulatives AS (
     SELECT 
@@ -79,7 +86,7 @@ year_start AS (
         sub.journal_id,
         sub.fiscal_year,
         LAST_VALUE(
-            sub.capital + sub.total_charges
+            sub.cumulative_capital + sub.cumulative_profit
         ) OVER (
             PARTITION BY sub.journal_id, sub.fiscal_year
             ORDER BY sub.metric_date
@@ -88,16 +95,21 @@ year_start AS (
     FROM (
         SELECT 
             ds.journal_id,
-            DATE_TRUNC('year', ds.metric_date) AS fiscal_year,
+            DATE_TRUNC('year', ds.metric_date) + INTERVAL '1 year' AS fiscal_year,
             ds.metric_date,
-            SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER w AS capital,
-            SUM(COALESCE(tm.total_exit_charges, 0)) OVER w AS total_charges
+            SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (
+                PARTITION BY ds.journal_id, DATE_TRUNC('year', ds.metric_date)
+                ORDER BY ds.metric_date
+            ) AS cumulative_capital,
+            SUM(COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0))) OVER (
+                PARTITION BY ds.journal_id
+                ORDER BY ds.metric_date
+            ) AS cumulative_profit
         FROM date_series ds
         LEFT JOIN fund_flow ff USING (metric_date, journal_id)
         LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
-        WINDOW w AS (PARTITION BY ds.journal_id ORDER BY ds.metric_date)
+        LEFT JOIN entry_dates ed USING (metric_date, journal_id)
     ) sub
-    WHERE sub.metric_date < DATE_TRUNC('year', sub.metric_date) + INTERVAL '1 year'
     ORDER BY sub.journal_id, sub.fiscal_year, sub.metric_date DESC
 ),
 capital_calcs AS (
@@ -107,21 +119,43 @@ capital_calcs AS (
         SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (
             PARTITION BY ds.journal_id 
             ORDER BY ds.metric_date
-        ) AS capital_deployed
+        ) AS cumulative_capital
     FROM date_series ds
     LEFT JOIN fund_flow ff 
         ON ds.metric_date = ff.metric_date 
         AND ds.journal_id = ff.journal_id
+),
+cumulative_profit_calc AS (
+    SELECT
+        ds.metric_date,
+        ds.journal_id,
+        SUM(COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0))) OVER (
+            PARTITION BY ds.journal_id
+            ORDER BY ds.metric_date
+        ) AS cumulative_net_profit
+    FROM date_series ds
+    LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
+    LEFT JOIN entry_dates ed USING (metric_date, journal_id)
 )
 SELECT
     ds.metric_date,
     ds.journal_id,
     COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0) AS charges,
     COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0)) AS net_profit,
+    SUM(COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0))) OVER (
+        PARTITION BY ds.journal_id
+        ORDER BY ds.metric_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS cumulative_net_profit,
     COALESCE(ed.new_orders, 0) AS new_orders_length,
     COALESCE(tm.closed_orders, 0) AS closed_orders_length,
     COALESCE(tm.partially_closed, 0) AS partially_closed_orders,
-    cc.capital_deployed,
+    cc.cumulative_capital AS capital_deployed,
+    CASE
+        WHEN DATE_TRUNC('year', ds.metric_date) = ds.metric_date 
+        THEN cc.cumulative_capital + cnp.cumulative_net_profit
+        ELSE COALESCE(ys.starting_account_value, cc.cumulative_capital)
+    END AS starting_account_value,
     CASE 
         WHEN tm.closed_orders > 0 
         THEN (tm.winning_trades::FLOAT / tm.closed_orders) * 100 
@@ -134,7 +168,7 @@ SELECT
     END AS avg_holding_days,
     CASE 
         WHEN tm.closed_orders > 0 
-        THEN SUM(tm.total_exit_charges) OVER () / tm.closed_orders::NUMERIC 
+        THEN tm.total_exit_charges / tm.closed_orders::NUMERIC 
         ELSE 0 
     END AS avg_rpt,
     CASE 
@@ -160,3 +194,10 @@ LEFT JOIN entry_dates ed
 LEFT JOIN capital_calcs cc 
     ON ds.metric_date = cc.metric_date 
     AND ds.journal_id = cc.journal_id
+LEFT JOIN year_start ys 
+    ON DATE_TRUNC('year', ds.metric_date) = ys.fiscal_year 
+    AND ds.journal_id = ys.journal_id
+LEFT JOIN cumulative_profit_calc cnp 
+    ON ds.metric_date = cnp.metric_date 
+    AND ds.journal_id = cnp.journal_id
+GROUP BY 1,2,3,4,6,7,8,9,10,11,12,13,14,15
