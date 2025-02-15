@@ -23,7 +23,7 @@ SELECT
       CASE te.direction
         WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
         ELSE (te.entry_price - ex.exit_price) * ex.quantity_exited
-      END - ex.charges - te.charges), 0)
+      END - ex.charges), 0)
    FROM trade_entries te
    JOIN trade_exits ex ON te.id = ex.entry_id
    WHERE te.journal_id = jm.journal_id
