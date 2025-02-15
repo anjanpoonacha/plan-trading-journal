@@ -9,8 +9,6 @@ WITH date_series AS (
         SELECT entry_date AS activity_date, journal_id FROM trade_entries
         UNION ALL
         SELECT exit_date, journal_id FROM trade_exits
-        UNION ALL
-        SELECT transaction_date, journal_id FROM funds
     ) all_activities
     GROUP BY 1, 2
 ),
@@ -83,8 +81,6 @@ SELECT
     COALESCE(ed.new_orders, 0) AS new_orders_length,
     COALESCE(tm.closed_orders, 0) AS closed_orders_length,
     COALESCE(tm.partially_closed, 0) AS partially_closed_orders,
-    COALESCE(ff.deposits, 0) AS deposits,
-    COALESCE(ff.withdrawals, 0) AS withdrawals,
     SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) OVER (
         ORDER BY ds.metric_date
     ) AS capital,
