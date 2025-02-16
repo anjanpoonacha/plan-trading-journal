@@ -91,7 +91,7 @@ SELECT
     END * (te.current_stop_loss - te.entry_price) * (te.quantity - COALESCE(ea.total_exited, 0)) AS open_risk,
     (te.quantity * te.entry_price) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0) * 100 AS position_size_pct,
     (te.quantity * te.entry_price) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0) AS exposure_pct,
-    (te.risk / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0)) AS risk_pct,
+    (te.risk / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0)) AS rpt_pct,
     (ea.realized_profit - te.charges) AS net_profit,
     EXTRACT(DAY FROM NOW() - te.entry_date) AS days_open,
     CASE WHEN ea.total_exited > 0 THEN
@@ -115,7 +115,7 @@ SELECT
     END * 100 AS current_sl_pct,
     (COALESCE(ea.total_exited, 0) / te.quantity) * 100 AS exit_pct,
     (COALESCE(ea.realized_profit, 0) - te.charges) / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0) * 100 AS account_gain_pct,
-    (te.risk / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0)) * 100 AS rpt_pct,
+    (te.risk / NULLIF(COALESCE(fm.capital_deployed, 0) + COALESCE(rp.historical_profit, 0), 0)) * 100 AS risk_pct,
     -- RR Calculation
     -- Version 1: Based on price percentages
     (COALESCE(
