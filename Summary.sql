@@ -23,13 +23,16 @@ WITH date_series AS (
 exit_cumulatives AS (
     SELECT 
         ex.*,
+        te.id AS trade_id,
         SUM(ex.quantity_exited) OVER (PARTITION BY ex.entry_id ORDER BY ex.exit_date) AS cumulative_exited
     FROM trade_exits ex
+    JOIN trade_entries te ON ex.entry_id = te.id
 ),
 trade_metrics AS (
     SELECT
         ex.exit_date::date AS metric_date,
         ex.journal_id,
+        ex.trade_id,
         SUM(
             CASE te.direction
                 WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
@@ -62,6 +65,9 @@ trade_metrics AS (
         COUNT(DISTINCT te.id) FILTER (
             WHERE ex.cumulative_exited = te.quantity
         ) AS fully_closed,
+        COUNT(DISTINCT te.id) FILTER (
+            WHERE ex.cumulative_exited = te.quantity
+        ) AS fully_closed_trades,
         SUM(CASE WHEN (ex.exit_price - te.entry_price) * 
             CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END > 0 
             THEN (ex.exit_price - te.entry_price) * ex.quantity_exited ELSE 0 END
@@ -77,7 +83,7 @@ trade_metrics AS (
         ) AS total_risk
     FROM exit_cumulatives ex
     JOIN trade_entries te ON ex.entry_id = te.id
-    GROUP BY 1, 2
+    GROUP BY 1, 2, 3
 ),
 fund_flow AS (
     SELECT
@@ -156,10 +162,11 @@ cumulative_profit_calc AS (
     FROM date_series ds
     LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
     LEFT JOIN entry_dates ed USING (metric_date, journal_id)
-)
-WITH trade_capital AS (
+),
+trade_capital AS (
     SELECT
         te.id AS trade_id,
+        te.journal_id,
         SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) 
             OVER (PARTITION BY te.journal_id ORDER BY te.entry_date) 
         AS capital_deployed_at_open
@@ -265,7 +272,7 @@ LEFT JOIN cumulative_profit_calc cnp
     ON ds.metric_date = cnp.metric_date 
     AND ds.journal_id = cnp.journal_id
 LEFT JOIN trade_capital 
-    ON tm.metric_date = trade_capital.trade_id 
+    ON tm.trade_id = trade_capital.trade_id 
     AND tm.journal_id = trade_capital.journal_id
 GROUP BY 
     ds.metric_date,
@@ -290,4 +297,5 @@ GROUP BY
     arr,
     rocd,
     rosav,
-    avg_rpt_percent
+    avg_rpt_percent,
+    trade_capital.capital_deployed_at_open
