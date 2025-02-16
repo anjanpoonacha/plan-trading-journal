@@ -201,11 +201,6 @@ SELECT
     COALESCE(tm.closed_orders, 0) AS closed_orders_length,
     COALESCE(tm.partially_closed, 0) AS partially_closed_orders,
     cc.cumulative_capital AS capital_deployed,
-    CASE
-        WHEN DATE_TRUNC('year', ds.metric_date) = ds.metric_date 
-        THEN ys.starting_capital + ys.previous_year_profit
-        ELSE COALESCE(ys.starting_capital + ys.previous_year_profit, cc.cumulative_capital)
-    END AS starting_account_value,
     CASE 
         WHEN tm.closed_orders > 0 
         THEN (tm.winning_trades::FLOAT / tm.closed_orders) * 100 
@@ -303,7 +298,6 @@ GROUP BY
     closed_orders_length,
     partially_closed_orders,
     capital_deployed,
-    starting_account_value,
     win_rate,
     avg_holding_days,
     avg_rpt,
