@@ -1,0 +1,72 @@
+[
+	{
+		"sortablePeriod": "2024-01-01",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 100000,
+		"starting_account_value": 100100
+	},
+	{
+		"sortablePeriod": "2024-01-02",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 100000,
+		"starting_account_value": 100100
+	},
+	{
+		"sortablePeriod": "2024-01-16",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 100000,
+		"starting_account_value": 100100
+	},
+	{
+		"sortablePeriod": "2024-02-01",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 100000,
+		"starting_account_value": 100100
+	},
+	{
+		"sortablePeriod": "2024-02-20",
+		"avgRpt": 1000,
+		"avgRptPercent": 0.9994840663249631,
+		"capital_deployed": 100000,
+		"starting_account_value": 100100
+	},
+	{
+		"sortablePeriod": "2024-02-25",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 100000,
+		"starting_account_value": 100100
+	},
+	{
+		"sortablePeriod": "2024-12-01",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 120000,
+		"starting_account_value": 120100
+	},
+	{
+		"sortablePeriod": "2025-01-29",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 170000,
+		"starting_account_value": 176863.72
+	},
+	{
+		"sortablePeriod": "2025-02-01",
+		"avgRpt": 0,
+		"avgRptPercent": 0,
+		"capital_deployed": 170000,
+		"starting_account_value": 176863.72
+	},
+	{
+		"sortablePeriod": "2025-02-14",
+		"avgRpt": 1250,
+		"avgRptPercent": 1.1958396753758542,
+		"capital_deployed": 170000,
+		"starting_account_value": 176863.72
+	}
+]
