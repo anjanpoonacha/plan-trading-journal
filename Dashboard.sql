@@ -20,16 +20,43 @@ CREATE OR REPLACE VIEW journal_dashboard AS
 WITH funds_cte AS (
     SELECT 
         journal_id,
-        SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE -amount END) AS capital_deployed
+        SUM(CASE WHEN transaction_date >= DATE_TRUNC('year', CURRENT_DATE)
+                 THEN CASE WHEN type = 'DEPOSIT' THEN amount ELSE -amount END
+                 ELSE 0 END) AS ytd_funds,
+        SUM(CASE WHEN transaction_date < DATE_TRUNC('year', CURRENT_DATE)
+                 THEN CASE WHEN type = 'DEPOSIT' THEN amount ELSE -amount END
+                 ELSE 0 END) AS historical_funds
     FROM funds
     GROUP BY journal_id
 ),
-realized_profits_cte AS (
+historical_profits_cte AS (
     SELECT
         te.journal_id,
-        SUM((exit_price - te.entry_price) * quantity_exited - (e.charges + te.charges)) AS net_profit
+        SUM(
+            (CASE WHEN te.direction = 'LONG' 
+                THEN (exit_price - te.entry_price)
+                ELSE (te.entry_price - exit_price)
+            END) * quantity_exited 
+            - (e.charges + (te.charges * (quantity_exited::NUMERIC / te.quantity)))
+        ) AS net_profit
     FROM trade_exits e
-    JOIN trade_entries te ON te.id = e.entry_id
+    JOIN trade_entries te ON e.entry_id = te.id
+    WHERE e.exit_date < DATE_TRUNC('year', CURRENT_DATE)
+    GROUP BY te.journal_id
+),
+current_year_profits_cte AS (
+    SELECT
+        te.journal_id,
+        SUM(
+            (CASE WHEN te.direction = 'LONG' 
+                THEN (exit_price - te.entry_price)
+                ELSE (te.entry_price - exit_price)
+            END) * quantity_exited 
+            - (e.charges + (te.charges * (quantity_exited::NUMERIC / te.quantity)))
+        ) AS ytd_net_profit
+    FROM trade_exits e
+    JOIN trade_entries te ON e.entry_id = te.id
+    WHERE e.exit_date >= DATE_TRUNC('year', CURRENT_DATE)
     GROUP BY te.journal_id
 ),
 open_trades_cte AS (
@@ -41,36 +68,14 @@ open_trades_cte AS (
         te.stop_loss
     FROM trade_entries te
     LEFT JOIN trade_exits e ON te.id = e.entry_id
-    GROUP BY te.id, te.journal_id, te.direction, te.quantity, te.entry_price, te.stop_loss
-    HAVING te.quantity - COALESCE(SUM(e.quantity_exited), 0) > 0
-),
-starting_account_value_cte AS (
-    SELECT
-        f.journal_id,
-        (f.capital_deployed + COALESCE(r.net_profit, 0)) AS starting_account_value
-    FROM (
-        SELECT 
-            journal_id,
-            SUM(CASE WHEN type = 'DEPOSIT' THEN amount ELSE -amount END) AS capital_deployed
-        FROM funds
-        WHERE transaction_date < DATE_TRUNC('year', CURRENT_DATE)
-        GROUP BY journal_id
-    ) f
-    LEFT JOIN (
-        SELECT
-            te.journal_id,
-            SUM((exit_price - te.entry_price) * quantity_exited - (e.charges + te.charges)) AS net_profit
-        FROM trade_exits e
-        JOIN trade_entries te ON te.id = e.entry_id
-        WHERE e.exit_date < DATE_TRUNC('year', CURRENT_DATE)
-        GROUP BY te.journal_id
-    ) r ON f.journal_id = r.journal_id
+    GROUP BY te.id
 )
 SELECT
     j.id AS journal_id,
-    f.capital_deployed,
-    (f.capital_deployed + COALESCE(r.net_profit, 0)) AS account_value,
-    COALESCE(s.starting_account_value, f.capital_deployed) AS starting_account_value,
+    (f.historical_funds + f.ytd_funds) AS capital_deployed,
+    (COALESCE(hp.net_profit, 0) + f.historical_funds + COALESCE(yp.ytd_net_profit, 0) + f.ytd_funds) AS account_value,
+    (COALESCE(hp.net_profit, 0) + f.historical_funds) AS starting_account_value,
+    (COALESCE(hp.net_profit, 0) + f.historical_funds + f.ytd_funds) AS starting_account_value_adj,
     -- Exposure Calculations
     COALESCE(SUM(ot.remaining_quantity * ot.entry_price), 0) AS total_exposure,
     COALESCE(SUM(CASE WHEN ot.direction = 'LONG' THEN ot.remaining_quantity * ot.entry_price ELSE 0 END), 0) AS total_exposure_long,
@@ -87,19 +92,19 @@ SELECT
     COALESCE(SUM(CASE WHEN ot.direction = 'SHORT' 
         THEN (ot.entry_price - ot.stop_loss) * ot.remaining_quantity ELSE 0 END), 0) AS total_open_risk_short,
     -- Percentage Calculations
-    COALESCE(SUM(ot.remaining_quantity * ot.entry_price) * 100.0 / NULLIF(f.capital_deployed + COALESCE(r.net_profit, 0), 0), 0) AS total_exposure_percent,
+    COALESCE(SUM(ot.remaining_quantity * ot.entry_price) * 100.0 / NULLIF(f.historical_funds + f.ytd_funds + COALESCE(hp.net_profit, 0) + COALESCE(yp.ytd_net_profit, 0), 0), 0) AS total_exposure_percent,
     COALESCE(SUM(
         CASE WHEN ot.direction = 'LONG' 
             THEN (ot.stop_loss - ot.entry_price) * ot.remaining_quantity
             ELSE (ot.entry_price - ot.stop_loss) * ot.remaining_quantity
         END
-    ) * 100.0 / NULLIF(f.capital_deployed + COALESCE(r.net_profit, 0), 0), 0) AS total_open_risk_percent
+    ) * 100.0 / NULLIF(f.historical_funds + f.ytd_funds + COALESCE(hp.net_profit, 0) + COALESCE(yp.ytd_net_profit, 0), 0), 0) AS total_open_risk_percent
 FROM journals j
 LEFT JOIN funds_cte f ON j.id = f.journal_id
-LEFT JOIN realized_profits_cte r ON j.id = r.journal_id
-LEFT JOIN starting_account_value_cte s ON j.id = s.journal_id
+LEFT JOIN historical_profits_cte hp ON j.id = hp.journal_id
+LEFT JOIN current_year_profits_cte yp ON j.id = yp.journal_id
 LEFT JOIN open_trades_cte ot ON j.id = ot.journal_id
-GROUP BY j.id, f.capital_deployed, r.net_profit, s.starting_account_value;
+GROUP BY j.id, f.historical_funds, f.ytd_funds, hp.net_profit, yp.ytd_net_profit;
 
 
 
