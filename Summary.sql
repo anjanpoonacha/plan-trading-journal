@@ -58,7 +58,18 @@ trade_metrics AS (
         ) AS loss_days,
         COUNT(DISTINCT te.id) FILTER (
             WHERE ex.cumulative_exited < te.quantity
-        ) AS partially_closed
+        ) AS partially_closed,
+        COUNT(DISTINCT te.id) FILTER (
+            WHERE ex.cumulative_exited = te.quantity
+        ) AS fully_closed,
+        SUM(CASE WHEN (ex.exit_price - te.entry_price) * 
+            CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END > 0 
+            THEN (ex.exit_price - te.entry_price) * ex.quantity_exited ELSE 0 END
+        ) AS total_gain,
+        SUM(CASE WHEN (ex.exit_price - te.entry_price) * 
+            CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END <= 0 
+            THEN (te.entry_price - ex.exit_price) * ex.quantity_exited ELSE 0 END
+        ) AS total_loss
     FROM exit_cumulatives ex
     JOIN trade_entries te ON ex.entry_id = te.id
     GROUP BY 1, 2
@@ -184,8 +195,37 @@ SELECT
         WHEN tm.loss_days > 0 
         THEN tm.loss_days / (tm.closed_orders - tm.winning_trades)::NUMERIC 
         ELSE 0 
-    END AS avg_loss_days
+    END AS avg_loss_days,
+    COALESCE(ot.open_trades, 0) AS open_trades,
+    COALESCE(tm.fully_closed, 0) AS fully_closed,
+    COALESCE(tm.total_loss / NULLIF(tm.closed_orders - tm.winning_trades, 0), 0) AS avg_loss,
+    COALESCE(tm.total_gain / NULLIF(tm.winning_trades, 0), 0) AS avg_gain,
+    CASE 
+        WHEN cnp.cumulative_net_profit > 0 AND (ys.starting_capital + ys.previous_year_profit) > 0 
+        THEN (cnp.cumulative_net_profit / (ys.starting_capital + ys.previous_year_profit)) * 100 
+        ELSE 0 
+    END AS arr,
+    COALESCE((tm.gross_profit - tm.total_exit_charges - ed.entry_charges) / NULLIF(cc.cumulative_capital, 0) * 100, 0) AS rocd,
+    COALESCE((tm.gross_profit - tm.total_exit_charges - ed.entry_charges) / NULLIF(ys.starting_capital + ys.previous_year_profit + 
+        (SELECT SUM(COALESCE(ff_sub.deposits, 0) - COALESCE(ff_sub.withdrawals, 0)) 
+         FROM fund_flow ff_sub
+         WHERE ff_sub.journal_id = ds.journal_id
+         AND DATE_TRUNC('year', ff_sub.metric_date) = DATE_TRUNC('year', ds.metric_date)
+        ), 0
+    ) * 100, 0) AS rosav
 FROM date_series ds
+LEFT JOIN LATERAL (
+    SELECT COUNT(*) AS open_trades
+    FROM trade_entries te 
+    WHERE te.journal_id = ds.journal_id 
+    AND te.entry_date <= ds.metric_date
+    AND NOT EXISTS (
+        SELECT 1 FROM trade_exits ex 
+        WHERE ex.entry_id = te.id 
+        AND ex.exit_date <= ds.metric_date 
+        AND ex.quantity_exited = te.quantity
+    )
+) ot ON true
 LEFT JOIN trade_metrics tm 
     ON ds.metric_date = tm.metric_date 
     AND ds.journal_id = tm.journal_id
@@ -204,4 +244,26 @@ LEFT JOIN year_start ys
 LEFT JOIN cumulative_profit_calc cnp 
     ON ds.metric_date = cnp.metric_date 
     AND ds.journal_id = cnp.journal_id
-GROUP BY 1,2,3,4,6,7,8,9,10,11,12,13,14,15
+GROUP BY 
+    ds.metric_date,
+    ds.journal_id,
+    charges,
+    net_profit,
+    cumulative_net_profit,
+    new_orders_length,
+    closed_orders_length,
+    partially_closed_orders,
+    capital_deployed,
+    starting_account_value,
+    win_rate,
+    avg_holding_days,
+    avg_rpt,
+    avg_gain_days,
+    avg_loss_days,
+    open_trades,
+    fully_closed,
+    avg_loss,
+    avg_gain,
+    arr,
+    rocd,
+    rosav

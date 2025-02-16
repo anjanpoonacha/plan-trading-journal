@@ -290,3 +290,31 @@ INSERT INTO funds (
   '2024-03-13 00:00:00',
   'cd03b578-8769-47db-a51d-be9be4584bac'
 );
+
+-- withdraw 5000 on 14 Jan 2025 - 331f0303-d6c7-4fed-9ef1-1f29e1f57186
+
+INSERT INTO funds (
+  id, user_id, type, amount, transaction_date, 
+  journal_id
+) VALUES (
+  '331f0303-d6c7-4fed-9ef1-1f29e1f57186',
+  '8D9B81B5-A028-4643-8CEF-645495AFAD55',
+  'WITHDRAW',
+  5000,
+  '2025-01-14 00:00:00',
+  'cd03b578-8769-47db-a51d-be9be4584bac'
+);
+
+-- deposit 50000 on 01 Jan 2025 - 330ef0e3-76d5-4163-a285-bbd72803cbfd
+
+INSERT INTO funds (
+  id, user_id, type, amount, transaction_date, 
+  journal_id
+) VALUES (
+  '330ef0e3-76d5-4163-a285-bbd72803cbfd',
+  '8D9B81B5-A028-4643-8CEF-645495AFAD55',
+  'DEPOSIT',
+  50000,
+  '2025-01-01 00:00:00',
+  'cd03b578-8769-47db-a51d-be9be4584bac'
+);
