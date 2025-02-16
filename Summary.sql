@@ -69,7 +69,12 @@ trade_metrics AS (
         SUM(CASE WHEN (ex.exit_price - te.entry_price) * 
             CASE te.direction WHEN 'LONG' THEN 1 ELSE -1 END <= 0 
             THEN (te.entry_price - ex.exit_price) * ex.quantity_exited ELSE 0 END
-        ) AS total_loss
+        ) AS total_loss,
+        SUM(
+            (te.entry_price - te.stop_loss) * 
+            ex.quantity_exited *
+            CASE te.direction WHEN 'SHORT' THEN -1 ELSE 1 END
+        ) AS total_risk
     FROM exit_cumulatives ex
     JOIN trade_entries te ON ex.entry_id = te.id
     GROUP BY 1, 2
@@ -152,6 +157,17 @@ cumulative_profit_calc AS (
     LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
     LEFT JOIN entry_dates ed USING (metric_date, journal_id)
 )
+WITH trade_capital AS (
+    SELECT
+        te.id AS trade_id,
+        SUM(COALESCE(ff.deposits, 0) - COALESCE(ff.withdrawals, 0)) 
+            OVER (PARTITION BY te.journal_id ORDER BY te.entry_date) 
+        AS capital_deployed_at_open
+    FROM trade_entries te
+    LEFT JOIN fund_flow ff 
+        ON ff.journal_id = te.journal_id 
+        AND ff.metric_date <= te.entry_date
+)
 SELECT
     ds.metric_date,
     ds.journal_id,
@@ -181,11 +197,10 @@ SELECT
         THEN tm.total_holding_days / tm.closed_orders::NUMERIC 
         ELSE 0 
     END AS avg_holding_days,
-    CASE 
-        WHEN tm.closed_orders > 0 
-        THEN tm.total_exit_charges / tm.closed_orders::NUMERIC 
-        ELSE 0 
-    END AS avg_rpt,
+    COALESCE(
+        tm.total_risk / NULLIF(tm.fully_closed_trades, 0), 
+        0
+    ) AS avg_rpt,
     CASE 
         WHEN tm.gain_days > 0 
         THEN tm.gain_days / tm.winning_trades::NUMERIC 
@@ -201,8 +216,8 @@ SELECT
     COALESCE(tm.total_loss / NULLIF(tm.closed_orders - tm.winning_trades, 0), 0) AS avg_loss,
     COALESCE(tm.total_gain / NULLIF(tm.winning_trades, 0), 0) AS avg_gain,
     CASE 
-        WHEN cnp.cumulative_net_profit > 0 AND (ys.starting_capital + ys.previous_year_profit) > 0 
-        THEN (cnp.cumulative_net_profit / (ys.starting_capital + ys.previous_year_profit)) * 100 
+        WHEN COALESCE(tm.total_loss, 0) > 0 
+        THEN COALESCE(tm.total_gain / NULLIF(tm.total_loss, 0), 0)
         ELSE 0 
     END AS arr,
     COALESCE((tm.gross_profit - tm.total_exit_charges - ed.entry_charges) / NULLIF(cc.cumulative_capital, 0) * 100, 0) AS rocd,
@@ -212,7 +227,12 @@ SELECT
          WHERE ff_sub.journal_id = ds.journal_id
          AND DATE_TRUNC('year', ff_sub.metric_date) = DATE_TRUNC('year', ds.metric_date)
         ), 0
-    ) * 100, 0) AS rosav
+    ) * 100, 0) AS rosav,
+    COALESCE(
+        (tm.total_risk / NULLIF(tm.fully_closed_trades, 0)) / 
+        NULLIF(trade_capital.capital_deployed_at_open, 0) * 100,
+        0
+    ) AS avg_rpt_percent
 FROM date_series ds
 LEFT JOIN LATERAL (
     SELECT COUNT(*) AS open_trades
@@ -244,6 +264,9 @@ LEFT JOIN year_start ys
 LEFT JOIN cumulative_profit_calc cnp 
     ON ds.metric_date = cnp.metric_date 
     AND ds.journal_id = cnp.journal_id
+LEFT JOIN trade_capital 
+    ON tm.metric_date = trade_capital.trade_id 
+    AND tm.journal_id = trade_capital.journal_id
 GROUP BY 
     ds.metric_date,
     ds.journal_id,
@@ -266,4 +289,5 @@ GROUP BY
     avg_gain,
     arr,
     rocd,
-    rosav
+    rosav,
+    avg_rpt_percent
