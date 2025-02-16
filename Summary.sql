@@ -252,12 +252,14 @@ LEFT JOIN LATERAL (
     SELECT COUNT(*) AS open_trades
     FROM trade_entries te 
     WHERE te.journal_id = ds.journal_id 
-    AND te.entry_date <= ds.metric_date
+    AND te.entry_date::date < ds.metric_date
     AND NOT EXISTS (
-        SELECT 1 FROM trade_exits ex 
+        SELECT 1 
+        FROM trade_exits ex 
         WHERE ex.entry_id = te.id 
-        AND ex.exit_date <= ds.metric_date 
-        AND ex.quantity_exited = te.quantity
+        AND ex.exit_date::date <= ds.metric_date 
+        GROUP BY ex.entry_id
+        HAVING SUM(ex.quantity_exited) >= te.quantity
     )
 ) ot ON true
 LEFT JOIN trade_metrics tm 
