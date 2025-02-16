@@ -32,7 +32,6 @@ trade_metrics AS (
     SELECT
         ex.exit_date::date AS metric_date,
         ex.journal_id,
-        ex.trade_id,
         SUM(
             CASE te.direction
                 WHEN 'LONG' THEN (ex.exit_price - te.entry_price) * ex.quantity_exited
@@ -83,7 +82,7 @@ trade_metrics AS (
         ) AS total_risk
     FROM exit_cumulatives ex
     JOIN trade_entries te ON ex.entry_id = te.id
-    GROUP BY 1, 2, 3
+    GROUP BY 1, 2
 ),
 fund_flow AS (
     SELECT
@@ -102,6 +101,32 @@ entry_dates AS (
         SUM(charges) AS entry_charges
     FROM trade_entries
     GROUP BY 1, 2
+),
+cumulative_profit_calc AS (
+    SELECT
+        ds.metric_date,
+        ds.journal_id,
+        SUM(
+            (CASE WHEN te.direction = 'LONG' THEN (tm.gross_profit - tm.total_exit_charges) 
+                ELSE -(tm.gross_profit - tm.total_exit_charges) END)
+            - ex.charges - te.charges
+        ) OVER (
+            PARTITION BY ds.journal_id
+            ORDER BY ds.metric_date
+        ) AS cumulative_net_profit
+    FROM date_series ds
+    LEFT JOIN trade_metrics tm 
+        ON ds.metric_date = tm.metric_date 
+        AND ds.journal_id = tm.journal_id
+    LEFT JOIN entry_dates ed 
+        ON ds.metric_date = ed.metric_date 
+        AND ds.journal_id = ed.journal_id
+    LEFT JOIN trade_entries te  -- Directly join trade_entries using date
+        ON te.entry_date::date = ds.metric_date
+        AND te.journal_id = ds.journal_id
+    LEFT JOIN exit_cumulatives ex  -- Join via journal+date instead of trade_id
+        ON ex.exit_date::date = ds.metric_date
+        AND ex.journal_id = ds.journal_id
 ),
 year_start AS (
     SELECT DISTINCT ON (sub.journal_id, sub.fiscal_year)
@@ -126,22 +151,15 @@ year_start AS (
                 PARTITION BY ds.journal_id 
                 ORDER BY ds.metric_date
             ) AS cumulative_capital,
-            SUM(
-                (CASE WHEN te.direction = 'LONG' THEN (tm.gross_profit - tm.total_exit_charges) 
-                    ELSE -(tm.gross_profit - tm.total_exit_charges) END) * ex.quantity_exited
-                - ex.charges - te.charges
-            ) OVER (
+            SUM(COALESCE(cnp.cumulative_net_profit, 0)) OVER (
                 PARTITION BY ds.journal_id
                 ORDER BY ds.metric_date
             ) AS cumulative_profit
         FROM date_series ds
         LEFT JOIN fund_flow ff USING (metric_date, journal_id)
-        LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
-        LEFT JOIN entry_dates ed USING (metric_date, journal_id)
-        LEFT JOIN exit_cumulatives ex ON tm.trade_id = ex.trade_id
-        LEFT JOIN trade_entries te ON ex.entry_id = te.id
+        LEFT JOIN cumulative_profit_calc cnp USING (metric_date, journal_id)
+        WHERE ds.metric_date < DATE_TRUNC('year', ds.metric_date) + INTERVAL '1 year'
     ) sub
-    WHERE sub.metric_date < DATE_TRUNC('year', sub.fiscal_year)
     ORDER BY sub.journal_id, sub.fiscal_year, sub.metric_date DESC
 ),
 capital_calcs AS (
@@ -156,24 +174,6 @@ capital_calcs AS (
     LEFT JOIN fund_flow ff 
         ON ds.metric_date = ff.metric_date 
         AND ds.journal_id = ff.journal_id
-),
-cumulative_profit_calc AS (
-    SELECT
-        ds.metric_date,
-        ds.journal_id,
-        SUM(
-            (CASE WHEN te.direction = 'LONG' THEN (tm.gross_profit - tm.total_exit_charges) 
-                ELSE -(tm.gross_profit - tm.total_exit_charges) END) * ex.quantity_exited
-            - ex.charges - te.charges
-        ) OVER (
-            PARTITION BY ds.journal_id
-            ORDER BY ds.metric_date
-        ) AS cumulative_net_profit
-    FROM date_series ds
-    LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
-    LEFT JOIN entry_dates ed USING (metric_date, journal_id)
-    LEFT JOIN exit_cumulatives ex ON tm.trade_id = ex.trade_id
-    LEFT JOIN trade_entries te ON ex.entry_id = te.id
 ),
 trade_capital AS (
     SELECT
@@ -249,7 +249,7 @@ SELECT
     ) * 100, 0) AS rosav,
     COALESCE(
         (tm.total_risk / NULLIF(tm.fully_closed_trades, 0)) / 
-        NULLIF(trade_capital.capital_deployed_at_open, 0) * 100,
+        NULLIF(trade_capital.avg_capital_deployed, 0) * 100,
         0
     ) AS avg_rpt_percent
 FROM date_series ds
@@ -283,9 +283,16 @@ LEFT JOIN year_start ys
 LEFT JOIN cumulative_profit_calc cnp 
     ON ds.metric_date = cnp.metric_date 
     AND ds.journal_id = cnp.journal_id
-LEFT JOIN trade_capital 
-    ON tm.trade_id = trade_capital.trade_id 
-    AND tm.journal_id = trade_capital.journal_id
+LEFT JOIN (
+    SELECT 
+        te.entry_date::date AS metric_date,
+        te.journal_id,
+        AVG(tc.capital_deployed_at_open) AS avg_capital_deployed  -- Aggregate by date
+    FROM trade_entries te
+    JOIN trade_capital tc ON te.id = tc.trade_id
+    GROUP BY 1, 2
+) trade_capital ON ds.metric_date = trade_capital.metric_date 
+                AND ds.journal_id = trade_capital.journal_id
 GROUP BY 
     ds.metric_date,
     ds.journal_id,
@@ -310,4 +317,4 @@ GROUP BY
     rocd,
     rosav,
     avg_rpt_percent,
-    trade_capital.capital_deployed_at_open
+    trade_capital.avg_capital_deployed
