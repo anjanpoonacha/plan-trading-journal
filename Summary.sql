@@ -126,7 +126,11 @@ year_start AS (
                 PARTITION BY ds.journal_id 
                 ORDER BY ds.metric_date
             ) AS cumulative_capital,
-            SUM(COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0))) OVER (
+            SUM(
+                (CASE WHEN te.direction = 'LONG' THEN (tm.gross_profit - tm.total_exit_charges) 
+                    ELSE -(tm.gross_profit - tm.total_exit_charges) END) * ex.quantity_exited
+                - ex.charges - te.charges
+            ) OVER (
                 PARTITION BY ds.journal_id
                 ORDER BY ds.metric_date
             ) AS cumulative_profit
@@ -134,6 +138,8 @@ year_start AS (
         LEFT JOIN fund_flow ff USING (metric_date, journal_id)
         LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
         LEFT JOIN entry_dates ed USING (metric_date, journal_id)
+        LEFT JOIN exit_cumulatives ex ON tm.trade_id = ex.trade_id
+        LEFT JOIN trade_entries te ON ex.entry_id = te.id
     ) sub
     WHERE sub.metric_date < DATE_TRUNC('year', sub.fiscal_year)
     ORDER BY sub.journal_id, sub.fiscal_year, sub.metric_date DESC
@@ -155,13 +161,19 @@ cumulative_profit_calc AS (
     SELECT
         ds.metric_date,
         ds.journal_id,
-        SUM(COALESCE(tm.gross_profit, 0) - (COALESCE(tm.total_exit_charges, 0) + COALESCE(ed.entry_charges, 0))) OVER (
+        SUM(
+            (CASE WHEN te.direction = 'LONG' THEN (tm.gross_profit - tm.total_exit_charges) 
+                ELSE -(tm.gross_profit - tm.total_exit_charges) END) * ex.quantity_exited
+            - ex.charges - te.charges
+        ) OVER (
             PARTITION BY ds.journal_id
             ORDER BY ds.metric_date
         ) AS cumulative_net_profit
     FROM date_series ds
     LEFT JOIN trade_metrics tm USING (metric_date, journal_id)
     LEFT JOIN entry_dates ed USING (metric_date, journal_id)
+    LEFT JOIN exit_cumulatives ex ON tm.trade_id = ex.trade_id
+    LEFT JOIN trade_entries te ON ex.entry_id = te.id
 ),
 trade_capital AS (
     SELECT
