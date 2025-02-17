@@ -16,7 +16,7 @@
 
 DROP VIEW IF EXISTS journal_dashboard;
 
-CREATE OR REPLACE VIEW journal_dashboard AS
+CREATE OR REPLACE materialized VIEW journal_dashboard AS
 WITH funds_cte AS (
     SELECT 
         journal_id,
@@ -154,3 +154,33 @@ BEGIN
     FROM trade_data t;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Create unique index needed for concurrent refresh
+CREATE UNIQUE INDEX journal_dashboard_journal_id_idx ON journal_dashboard (journal_id);
+
+-- Create refresh function with debounce mechanism
+CREATE OR REPLACE FUNCTION refresh_journal_dashboard()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Use debounce to prevent rapid successive refreshes
+    PERFORM pg_sleep(0.2);  -- Wait 200ms to batch changes
+    REFRESH MATERIALIZED VIEW CONCURRENTLY journal_dashboard;
+    RETURN NULL;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Error refreshing journal_dashboard: %', SQLERRM;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers on all underlying tables
+CREATE TRIGGER refresh_dashboard_after_funds
+AFTER INSERT OR UPDATE OR DELETE ON funds
+FOR EACH ROW EXECUTE FUNCTION refresh_journal_dashboard();
+
+CREATE TRIGGER refresh_dashboard_after_trade_entries
+AFTER INSERT OR UPDATE OR DELETE ON trade_entries
+FOR EACH ROW EXECUTE FUNCTION refresh_journal_dashboard();
+
+CREATE TRIGGER refresh_dashboard_after_trade_exits
+AFTER INSERT OR UPDATE OR DELETE ON trade_exits
+FOR EACH ROW EXECUTE FUNCTION refresh_journal_dashboard();
