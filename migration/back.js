@@ -8,7 +8,7 @@ const inputFile = path.join(__dirname, file);
 const outputFile = path.join(__dirname, `migration_${file}.sql`);
 
 // Add this constant at the top of the file
-const USER_ID = '8D9B81B5-A028-4643-8CEF-645495AFAD55';
+const USER_ID = '5ae44820-be78-44e1-92c4-449828bb82ad';
 
 // Helper functions
 const toSqlDate = (isoString) => isoString ? `'${isoString.split('.')[0].replace('T', ' ')}'` : 'NOW()';

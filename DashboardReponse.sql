@@ -1,7 +1,6 @@
+drop function if exists get_journal_dashboard(uuid, uuid);
 
-drop function if exists get_journal_dashboard(uuid);
-
-CREATE OR REPLACE FUNCTION get_journal_dashboard(journal_id UUID)
+CREATE OR REPLACE FUNCTION get_journal_dashboard(journal_id UUID, user_id UUID)
 RETURNS TABLE (
     dashboard jsonb,
     trades jsonb
@@ -11,6 +10,11 @@ BEGIN
     WITH dash AS (
         SELECT * FROM journal_dashboard
         WHERE journal_dashboard.journal_id = get_journal_dashboard.journal_id
+        AND EXISTS (
+            SELECT 1 FROM journals j
+            WHERE j.id = journal_dashboard.journal_id
+            AND j.user_id = get_journal_dashboard.user_id
+        )
     ),
     trade_data AS (
         SELECT 
@@ -30,6 +34,7 @@ BEGIN
             ) AS trade
         FROM unified_trade_metrics utm
         WHERE utm.journal_id = get_journal_dashboard.journal_id
+        AND utm.user_id = get_journal_dashboard.user_id
     )
     SELECT 
         (SELECT to_jsonb(d.*) FROM dash d) AS dashboard,

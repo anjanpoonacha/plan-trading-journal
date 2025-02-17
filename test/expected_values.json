@@ -1,0 +1,72 @@
+[
+	{
+		"sortable_period": "2024-01-01",
+		"open_trades": 0,
+		"close_orders_length": 0,
+		"new_orders_length": 1,
+		"partially_closed_orders": 0
+	},
+	{
+		"sortable_period": "2024-01-02",
+		"open_trades": 1,
+		"close_orders_length": 0,
+		"new_orders_length": 1,
+		"partially_closed_orders": 0
+	},
+	{
+		"sortable_period": "2024-01-16",
+		"open_trades": 2,
+		"close_orders_length": 1,
+		"new_orders_length": 0,
+		"partially_closed_orders": 1
+	},
+	{
+		"sortable_period": "2024-02-01",
+		"open_trades": 2,
+		"close_orders_length": 1,
+		"new_orders_length": 0,
+		"partially_closed_orders": 1
+	},
+	{
+		"sortable_period": "2024-02-20",
+		"open_trades": 2,
+		"close_orders_length": 1,
+		"new_orders_length": 0,
+		"partially_closed_orders": 0
+	},
+	{
+		"sortable_period": "2024-02-25",
+		"open_trades": 1,
+		"close_orders_length": 1,
+		"new_orders_length": 0,
+		"partially_closed_orders": 1
+	},
+	{
+		"sortable_period": "2024-12-01",
+		"open_trades": 1,
+		"close_orders_length": 0,
+		"new_orders_length": 1,
+		"partially_closed_orders": 0
+	},
+	{
+		"sortable_period": "2025-01-29",
+		"open_trades": 2,
+		"close_orders_length": 1,
+		"new_orders_length": 0,
+		"partially_closed_orders": 1
+	},
+	{
+		"sortable_period": "2025-02-01",
+		"open_trades": 2,
+		"close_orders_length": 1,
+		"new_orders_length": 0,
+		"partially_closed_orders": 1
+	},
+	{
+		"sortable_period": "2025-02-14",
+		"open_trades": 2,
+		"close_orders_length": 2,
+		"new_orders_length": 2,
+		"partially_closed_orders": 0
+	}
+]

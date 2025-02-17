@@ -159,49 +159,5 @@ LEFT JOIN realized_profits rp ON te.id = rp.id;
 CREATE INDEX idx_unified_journal ON unified_trade_metrics(journal_id);
 CREATE INDEX idx_unified_user ON unified_trade_metrics(user_id);
 CREATE INDEX idx_unified_instrument ON unified_trade_metrics(instrument_id);
-
-CREATE OR REPLACE FUNCTION get_journal_dashboard(p_journal_id UUID)
-RETURNS TABLE (
-    journal_id UUID,
-    capital_deployed NUMERIC,
-    account_value NUMERIC,
-    total_exposure NUMERIC,
-    total_open_risk NUMERIC,
-    trades JSONB
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        d.journal_id,
-        d.capital_deployed,
-        d.account_value,
-        d.total_exposure,
-        d.total_open_risk,
-        COALESCE(
-            jsonb_agg(jsonb_build_object(
-                'entry_id', utm.id,
-                'symbol', utm.symbol,
-                'direction', utm.direction,
-                'entry_price', utm.entry_price,
-                'quantity', utm.quantity,
-                'exits', utm.exit_records,
-                'open_quantity', utm.open_quantity,
-                'realized_profit', utm.realized_profit,
-                'unrealized_risk', utm.open_risk
-            )),
-            '[]'::jsonb
-        ) AS trades
-    FROM journal_dashboard d
-    LEFT JOIN unified_trade_metrics utm 
-        ON d.journal_id = utm.journal_id
-    WHERE d.journal_id = get_journal_dashboard.p_journal_id
-    GROUP BY 
-        d.journal_id,
-        d.capital_deployed,
-        d.account_value,
-        d.total_exposure,
-        d.total_open_risk;
-END;
-$$ LANGUAGE plpgsql;
-
-
+CREATE INDEX idx_unified_entry_date ON unified_trade_metrics(journal_id, entry_date);
+CREATE INDEX idx_unified_exit_records ON unified_trade_metrics USING GIN (exit_records);

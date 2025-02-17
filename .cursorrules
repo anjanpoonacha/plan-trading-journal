@@ -1,0 +1,11 @@
+IMPORTANT: Don't leave any metrics. 
+
+GO THROUGH THE METRICS DETAILS BEFORE COMING UP WITH FORMULA. MAKE SURE EDGE CASE IS COVERED
+
+Go through the feature before fixing a bug
+
+Always use the snake case for the pgsql fields
+
+DONT USE window functions in group by
+
+keep the underlying logic and impact in mind before fixing
